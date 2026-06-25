@@ -1,6 +1,7 @@
 import sys
 import os
 from docx import Document
+from docx.shared import Pt
 
 def update_tables(docx_path):
     # Ensure the docx_path is an absolute path
@@ -16,6 +17,13 @@ def update_tables(docx_path):
     # Update the tables
     for table in doc.tables:
         table.autofit = True
+        # Set smaller font size for all cells in the table
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        # Set font size to 9pt (slightly smaller than default 11-12pt)
+                        run.font.size = Pt(9)
 
     # Save the updated document
     doc.save(docx_path)
