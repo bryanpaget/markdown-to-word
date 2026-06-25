@@ -13,13 +13,10 @@ def update_header(docx_path, title_text):
     # Load the document
     doc = Document(docx_path)
 
-    # Update the headers
-    for section in doc.sections:
-        header = section.header
-        if not header.paragraphs:
-            header.add_paragraph(title_text)
-        else:
-            header.paragraphs[0].text = title_text
+    # Update the document title metadata only.
+    # Avoid injecting the title into the header, because the reference
+    # template includes a header style with a horizontal border line.
+    doc.core_properties.title = title_text
 
     # Save the updated document
     doc.save(docx_path)
