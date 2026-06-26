@@ -28,7 +28,7 @@ TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.do
 - The script resolves relative paths from the repository root.
 - Output directories are created automatically.
 - The DOCX reference template is configured for standard US Letter size (8.5" x 11").
-- The title is written to DOCX metadata only, not into the header, to avoid horizontal header border lines from the template.
+- The title is written to both DOCX metadata and the header, replacing the "[Enter Document Title]" placeholder in the template.
 
 ## GitHub Action
 
