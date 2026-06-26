@@ -26,19 +26,7 @@ def update_header(docx_path, title_text):
             # Extract all files
             z.extractall(tmpdir)
             
-            # First, collect all current titles from headers
-            # This allows us to find what needs to be replaced
-            header_titles = set()
-            for name in z.namelist():
-                if 'header' in name.lower() and name.endswith('.xml'):
-                    filepath = os.path.join(tmpdir, name)
-                    if os.path.exists(filepath):
-                        with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
-                            content = f.read()
-                        texts = re.findall(r'<w:t[^>]*>([^<]+)</w:t>', content)
-                        header_titles.update(texts)
-            
-            # Also get the metadata title
+            # Get the metadata title (this is what was previously set)
             core_xml_path = os.path.join(tmpdir, 'docProps/core.xml')
             metadata_title = None
             if os.path.exists(core_xml_path):
@@ -47,15 +35,15 @@ def update_header(docx_path, title_text):
                 match = re.search(r'<dc:title>([^<]*)</dc:title>', content)
                 if match:
                     metadata_title = match.group(1)
-                    header_titles.add(metadata_title)
             
-            # Text to replace in headers: placeholder, metadata title, and any header titles
-            placeholders = ["[Enter Document Title]"]
-            if metadata_title:
+            # Only replace the placeholder and the old metadata title
+            # Don't replace other header content like "Unclassified | Non classifié"
+            # The template has the placeholder split across elements: "[Enter ", "Document Title", "]"
+            placeholders = ["[Enter Document Title]", "[Enter ", "Document Title", "]"]
+            if metadata_title and metadata_title.strip():
                 placeholders.append(metadata_title)
-            placeholders.extend(header_titles)
             
-            # Remove empty strings and duplicates while preserving order
+            # Remove duplicates while preserving order
             seen = set()
             placeholders = [p for p in placeholders if p and p.strip() and not (p in seen or seen.add(p))]
             
@@ -80,8 +68,18 @@ def update_header(docx_path, title_text):
                         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
                             content = f.read()
                         
-                        # Replace in text elements
+                        # First handle the split placeholder case: "[Enter ", "Document Title", "]"
+                        # The template has: <w:t>[Enter </w:t>...<w:t>Document Title</w:t>...<w:t>]</w:t>
+                        # Match the entire sequence and replace with a single element containing the title
+                        split_pattern = r'\[Enter [\s\S]*?Document Title[\s\S]*?\]'
+                        split_replacement = f'<w:r><w:t>{title_text}</w:t></w:r>'
+                        content = re.sub(split_pattern, split_replacement, content, count=1)
+                        
+                        # Also handle the non-split placeholder
                         for placeholder in placeholders:
+                            # Skip the split parts if we already handled them
+                            if placeholder in ["[Enter ", "Document Title", "]"]:
+                                continue
                             # Escape special regex characters in placeholder
                             escaped = re.escape(placeholder)
                             # Replace in <w:t> elements
