@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Combine All Markdown Files
         run: |
@@ -41,6 +41,8 @@ jobs:
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
+        env:
+          PDF_FILE: ""
 
       - name: Upload Word Document
         uses: actions/upload-artifact@v7

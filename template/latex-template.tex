@@ -1,0 +1,45 @@
+% Document class with smaller font and margins to resemble Word
+\documentclass[11pt, letterpaper]{article}
+
+% Use geometry package for smaller margins (similar to Word)
+\usepackage[left=0.75in, right=0.75in, top=0.75in, bottom=0.75in]{geometry}
+
+% Font settings - slightly smaller base font
+\usepackage{fontspec}
+\setmainfont{Calibri}[SizeFeatures={Size=10}]
+
+% For better table formatting
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+
+% Paragraph formatting to match Word
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+
+% Page styling
+\pagestyle{plain}
+
+% Hyperlinks (if needed)
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+% Allow for custom styling through pandoc metadata
+\title{$title$}
+\author{}
+\date{}
+
+% Begin document
+\begin{document}
+
+% Prevent widows and orphans
+\widowpenalty=10000
+\clubpenalty=10000
+
+% Enable automatic line breaks for long URLs
+\urlstyle{same}
+
+$body$
+
+\end{document}
