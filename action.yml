@@ -17,6 +17,10 @@ inputs:
     description: "Path to the DOCX reference template."
     required: false
     default: "template/ssc-template-v2.7.dotx"
+  classification:
+    description: "Classification text for the document header (e.g., 'UNCLASSIFIED | Non classifie')."
+    required: false
+    default: "Unclassified | Non classifie"
 
 runs:
   using: "composite"
@@ -56,4 +60,5 @@ runs:
         "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
                                                        "${{ inputs.markdown_file }}" \
                                                        "${{ inputs.output_file }}" \
-                                                       "${{ github.action_path }}/${{ inputs.reference_doc }}"
+                                                       "${{ github.action_path }}/${{ inputs.reference_doc }}" \
+                                                       "${{ inputs.classification }}"

@@ -6,6 +6,7 @@ DEFAULT_TITLE="[Untitled Document]"        # Default title for the DOCX file
 DEFAULT_MD_FILE="docs/sample.md"          # Default Markdown file path
 DEFAULT_OUTPUT_FILE="output/sample.docx"  # Default output file path
 DEFAULT_REFERENCE_DOC="template/ssc-template-v2.7.dotx"  # Default reference template
+DEFAULT_CLASSIFICATION="Unclassified | Non classifie"  # Default classification text
 DEFAULT_PDF_FILE=""                       # Default PDF file (empty = no PDF generation)
 DEFAULT_LATEX_TEMPLATE="template/latex-template.tex"  # Default LaTeX template
 
@@ -18,16 +19,17 @@ TITLE="${1:-${TITLE:-$DEFAULT_TITLE}}"                # First argument, environm
 MARKDOWN_FILE="${2:-${MARKDOWN_FILE:-$DEFAULT_MD_FILE}}"      # Second argument, env var, or default Markdown file
 OUTPUT_FILE="${3:-${OUTPUT_FILE:-$DEFAULT_OUTPUT_FILE}}"    # Third argument, env var, or default output DOCX file
 REFERENCE_DOC="${4:-${REFERENCE_DOC:-$DEFAULT_REFERENCE_DOC}}" # Fourth argument, env var, or default reference template
+CLASSIFICATION="${5:-${CLASSIFICATION:-$DEFAULT_CLASSIFICATION}}" # Fifth argument, env var, or default classification
 PDF_FILE="${5:-${PDF_FILE:-$DEFAULT_PDF_FILE}}"              # Fifth argument, env var, or default PDF file (empty = skip)
 
 # === FUNCTIONS ===
 usage() {
-    echo "Usage: $0 [title] [markdown_file] [output_file] [reference_doc] [pdf_file]"
+    echo "Usage: $0 [title] [markdown_file] [output_file] [reference_doc] [classification]"
     echo "  title: Title to set in the DOCX metadata (default: '$DEFAULT_TITLE')."
     echo "  markdown_file: Path to the Markdown file (default: '$DEFAULT_MD_FILE')."
     echo "  output_file: Path to the output DOCX file (default: '$DEFAULT_OUTPUT_FILE')."
     echo "  reference_doc: Path to the DOCX reference template (default: '$DEFAULT_REFERENCE_DOC')."
-    echo "  pdf_file: Path to the output PDF file (optional, default: none)."
+    echo "  classification: Classification text for the header (default: '$DEFAULT_CLASSIFICATION')."
     exit 1
 }
 
@@ -108,7 +110,7 @@ pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
                         --reference-doc="$REFERENCE_DOC"
 
 # Run any additional processing scripts (if needed):
-python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$TITLE"
+python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$TITLE" "$CLASSIFICATION"
 python3 "$REPO_ROOT/scripts/update_tables.py" "$OUTPUT_FILE"
 EXIT_CODE=$?
 

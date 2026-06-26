@@ -4,13 +4,17 @@ import zipfile
 import re
 import tempfile
 
-def update_header(docx_path, title_text):
+def update_header(docx_path, title_text, classification=None):
     # Ensure the docx_path is an absolute path
     docx_path = os.path.abspath(docx_path)
 
     # Check if the file exists
     if not os.path.exists(docx_path):
         raise FileNotFoundError(f"Error: Cannot find DOCX file at '{docx_path}'")
+    
+    # Default classification if not provided
+    if classification is None:
+        classification = "Unclassified | Non classifie"
 
     # We'll modify the docx file directly by working with the zip archive
     # This gives us access to all headers, not just the ones python-docx exposes
@@ -89,6 +93,18 @@ def update_header(docx_path, title_text):
                                 content
                             )
                         
+                        # Replace classification text in all <w:t> elements
+                        # This handles "Unclassified | Non classifie" being in the headers
+                        # Escape the classification text for regex
+                        escaped_classification = re.escape(classification)
+                        escaped_default = re.escape("Unclassified | Non classifie")
+                        # Replace the default classification text with the custom one
+                        content = re.sub(
+                            rf'(<w:t[^>]*>){escaped_default}(</w:t>)',
+                            rf'\1{classification}\2',
+                            content
+                        )
+                        
                         with open(filepath, 'w', encoding='utf-8') as f:
                             f.write(content)
             
@@ -104,8 +120,12 @@ def update_header(docx_path, title_text):
         os.remove(temp_docx)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python3 update_header.py <docx_path> <title_text>")
+    if len(sys.argv) < 3:
+        print("Usage: python3 update_header.py <docx_path> <title_text> [classification]")
         sys.exit(1)
 
-    update_header(sys.argv[1], sys.argv[2])
+    docx_path = sys.argv[1]
+    title_text = sys.argv[2]
+    classification = sys.argv[3] if len(sys.argv) > 3 else None
+
+    update_header(docx_path, title_text, classification)
