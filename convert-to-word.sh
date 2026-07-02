@@ -7,6 +7,7 @@ DEFAULT_MD_FILE="docs/sample.md"          # Default Markdown file path
 DEFAULT_OUTPUT_FILE="output/sample.docx"  # Default output file path
 DEFAULT_REFERENCE_DOC="template/ssc-template-v2.7.dotx"  # Default reference template
 DEFAULT_CLASSIFICATION="Unclassified | Non classifie"  # Default classification text
+DEFAULT_PDF_FILE=""                       # Default PDF file (empty = no PDF generation)
 DEFAULT_LATEX_TEMPLATE="template/latex-template.tex"  # Default LaTeX template
 
 # Resolve the repository and script directories so relative paths work from any working directory.
@@ -19,15 +20,17 @@ MARKDOWN_FILE="${2:-${MARKDOWN_FILE:-$DEFAULT_MD_FILE}}"      # Second argument,
 OUTPUT_FILE="${3:-${OUTPUT_FILE:-$DEFAULT_OUTPUT_FILE}}"    # Third argument, env var, or default output DOCX file
 REFERENCE_DOC="${4:-${REFERENCE_DOC:-$DEFAULT_REFERENCE_DOC}}" # Fourth argument, env var, or default reference template
 CLASSIFICATION="${5:-${CLASSIFICATION:-$DEFAULT_CLASSIFICATION}}" # Fifth argument, env var, or default classification
+PDF_FILE="${6:-${PDF_FILE:-$DEFAULT_PDF_FILE}}"              # Sixth argument, env var, or default PDF file (empty = skip)
 
 # === FUNCTIONS ===
 usage() {
-    echo "Usage: $0 [title] [markdown_file] [output_file] [reference_doc] [classification]"
+    echo "Usage: $0 [title] [markdown_file] [output_file] [reference_doc] [classification] [pdf_file]"
     echo "  title: Title to set in the DOCX metadata (default: '$DEFAULT_TITLE')."
     echo "  markdown_file: Path to the Markdown file (default: '$DEFAULT_MD_FILE')."
     echo "  output_file: Path to the output DOCX file (default: '$DEFAULT_OUTPUT_FILE')."
     echo "  reference_doc: Path to the DOCX reference template (default: '$DEFAULT_REFERENCE_DOC')."
     echo "  classification: Classification text for the header (default: '$DEFAULT_CLASSIFICATION')."
+    echo "  pdf_file: Path to the output PDF file (optional)."
     exit 1
 }
 
@@ -56,6 +59,14 @@ if ! command -v mmdc >/dev/null 2>&1; then
     exit 1
 fi
 
+# Check for LaTeX dependencies if PDF generation is requested
+if [[ -n "$PDF_FILE" ]]; then
+    if ! command -v pdflatex >/dev/null 2>&1 && ! command -v xelatex >/dev/null 2>&1; then
+        echo "⚠️  Warning: Neither 'pdflatex' nor 'xelatex' found. PDF generation will be skipped."
+        PDF_FILE=""
+    fi
+fi
+
 # === RESOLVE PATHS ===
 WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$PWD}"
 
@@ -67,6 +78,9 @@ if [[ "$OUTPUT_FILE" != /* ]]; then
 fi
 if [[ "$REFERENCE_DOC" != /* ]]; then
     REFERENCE_DOC="$REPO_ROOT/$REFERENCE_DOC"
+fi
+if [[ "$PDF_FILE" != /* && -n "$PDF_FILE" ]]; then
+    PDF_FILE="$WORKSPACE_ROOT/$PDF_FILE"
 fi
 # === CHECK FILES ===
 if [[ ! -f "$MARKDOWN_FILE" ]]; then
@@ -80,6 +94,9 @@ if [[ ! -f "$REFERENCE_DOC" ]]; then
 fi
 
 mkdir -p "$(dirname "$OUTPUT_FILE")"
+if [[ -n "$PDF_FILE" ]]; then
+    mkdir -p "$(dirname "$PDF_FILE")"
+fi
 
 # === CONVERT TO WORD ===
 echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC' with title '$TITLE'..."
@@ -94,6 +111,33 @@ pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
 python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$TITLE" "$CLASSIFICATION"
 python3 "$REPO_ROOT/scripts/update_tables.py" "$OUTPUT_FILE"
 EXIT_CODE=$?
+
+# === CONVERT TO PDF (optional) ===
+if [[ -n "$PDF_FILE" ]]; then
+    echo "🔄 Generating PDF '$PDF_FILE' with LaTeX template and smaller margins..."
+    LATEX_TEMPLATE="$REPO_ROOT/$DEFAULT_LATEX_TEMPLATE"
+    TEMP_TEX="${PDF_FILE%.pdf}.tex"
+    pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
+                            --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
+                            --lua-filter="$REPO_ROOT/filters/toc.lua" \
+                            --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+                            -o "$TEMP_TEX" \
+                            --template="$LATEX_TEMPLATE"
+    if command -v xelatex >/dev/null 2>&1; then
+        xelatex -interaction nonstopmode "$TEMP_TEX" || true
+        xelatex -interaction nonstopmode "$TEMP_TEX" || true
+    else
+        pdflatex -interaction nonstopmode "$TEMP_TEX" || true
+        pdflatex -interaction nonstopmode "$TEMP_TEX" || true
+    fi
+    if [[ -f "${TEMP_TEX%.tex}.pdf" ]]; then
+        mv "${TEMP_TEX%.tex}.pdf" "$PDF_FILE"
+        echo "✅ PDF generated: $PDF_FILE"
+    else
+        echo "⚠️  Warning: PDF generation failed."
+    fi
+    rm -f "$TEMP_TEX" "${TEMP_TEX%.tex}.aux" "${TEMP_TEX%.tex}.log" "${TEMP_TEX%.tex}.out" "${TEMP_TEX%.tex}.toc"
+fi
 
 if [[ $EXIT_CODE -eq 0 ]]; then
     echo "✅ Conversion successful: $OUTPUT_FILE"

@@ -21,6 +21,10 @@ inputs:
     description: "Classification text for the document header (e.g., 'UNCLASSIFIED | Non classifie')."
     required: false
     default: "Unclassified | Non classifie"
+  pdf_file:
+    description: "Optional path to the output PDF file. Leave empty to skip PDF generation."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -61,4 +65,5 @@ runs:
                                                        "${{ inputs.markdown_file }}" \
                                                        "${{ inputs.output_file }}" \
                                                        "${{ github.action_path }}/${{ inputs.reference_doc }}" \
-                                                       "${{ inputs.classification }}"
+                                                       "${{ inputs.classification }}" \
+                                                       "${{ inputs.pdf_file }}"
