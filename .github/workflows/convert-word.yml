@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      date:
+        description: 'Document date (YYYY-MM-DD) – leave empty for today'
+        required: false
+        default: ''
+      classification:
+        description: 'Classification text'
+        required: false
+        default: 'Unclassified | Non classifie'
 
 jobs:
   markdown-to-word:
@@ -14,13 +23,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set document date
+        id: date
+        run: |
+          if [ -z "${{ github.event.inputs.date }}" ]; then
+            echo "doc_date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          else
+            echo "doc_date=${{ github.event.inputs.date }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Combine All Markdown Files
         run: |
+          # Top‑level frontmatter and single TOC
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
           title: "GCCO"
           subtitle: "Markdown to Word"
-          date: "$(date +%Y-%m-%d)"
+          date: "${{ steps.date.outputs.doc_date }}"
           version: "v0.0.1"
           ---
 
@@ -31,18 +50,28 @@ jobs:
 
           \newpage
           EOF
-          find docs -name "*.md" -not -name "combined.md" -exec sh -c 'cat "$@"; echo' _ {} + >> "$RUNNER_TEMP/combined.md"
+
+          # Find all .md files, sort, remove any internal TOC blocks, append
+          find docs -name "*.md" -not -name "combined.md" -print0 | sort -z | while IFS= read -r -d '' file; do
+            echo "" >> "$RUNNER_TEMP/combined.md"
+            # Delete any ::: {#toc} ... ::: blocks
+            sed -E '/^:::\s*\{#toc\}/,/^:::/d' "$file" >> "$RUNNER_TEMP/combined.md"
+            echo "" >> "$RUNNER_TEMP/combined.md"
+          done
+
+          # Fix image paths
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
         uses: bryanpaget/markdown-to-word@main
         with:
-          default_title: "[Untitled Document]"
+          default_title: "GCCO"   # match frontmatter title to avoid override
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
+          classification: "${{ github.event.inputs.classification || 'Unclassified | Non classifie' }}"
         env:
-          PDF_FILE: ""
+          PDF_FILE: ""   # set to output/sample.pdf if you want PDF
 
       - name: Upload Word Document
         uses: actions/upload-artifact@v7
