@@ -5,15 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      date:
-        description: 'Document date (YYYY-MM-DD) – leave empty for today'
-        required: false
-        default: ''
-      classification:
-        description: 'Classification text'
-        required: false
-        default: 'Unclassified | Non classifie'
 
 jobs:
   markdown-to-word:
@@ -23,22 +14,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set document date
-        id: date
-        run: |
-          if [ -z "${{ github.event.inputs.date }}" ]; then
-            echo "doc_date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
-          else
-            echo "doc_date=${{ github.event.inputs.date }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Combine All Markdown Files
         run: |
+          # Build the combined file with frontmatter and one TOC
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
           title: "GCCO"
           subtitle: "Markdown to Word"
-          date: "${{ steps.date.outputs.doc_date }}"
+          date: "$(date +%Y-%m-%d)"
           version: "v0.0.1"
           ---
 
@@ -49,19 +32,34 @@ jobs:
 
           \newpage
           EOF
-          find docs -name "*.md" -not -name "combined.md" -exec sh -c 'cat "$@"; echo' _ {} + >> "$RUNNER_TEMP/combined.md"
+
+          # Find all .md files, sort them, and for each:
+          # - Remove any internal ::: {#toc} blocks
+          # - Ensure each file starts with a level-1 heading (if not, add one? We'll just append as-is)
+          # - Append to combined.md with a newline separator
+          find docs -name "*.md" -not -name "combined.md" -print0 | sort -z | while IFS= read -r -d '' file; do
+            echo "" >> "$RUNNER_TEMP/combined.md"
+            # Remove any ::: {#toc} ... ::: blocks from the file
+            sed -E '/^:::\s*\{#toc\}/,/^:::/d' "$file" >> "$RUNNER_TEMP/combined.md"
+            echo "" >> "$RUNNER_TEMP/combined.md"
+          done
+
+          # Fix image paths (if any)
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
-        uses: gccloudone/markdown-to-word@main   # update to a fixed version later
+        uses: gccloudone/markdown-to-word@main
         with:
-          default_title: "[Untitled Document]"
+          # Use the title from frontmatter by not overriding it:
+          # Either set default_title to match, or remove the input if possible.
+          # Let's set it to "GCCO" so it doesn't show [Untitled Document]
+          default_title: "GCCO"
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
-          classification: "${{ github.event.inputs.classification || 'Unclassified | Non classifie' }}"
+          classification: "Unclassified | Non classifie"
         env:
-          PDF_FILE: ""   # set to "output/sample.pdf" if you want PDF output
+          PDF_FILE: ""   # set to generate PDF if needed
 
       - name: Upload Word Document
         uses: actions/upload-artifact@v7
