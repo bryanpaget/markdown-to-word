@@ -34,12 +34,12 @@ jobs:
 
       - name: Combine All Markdown Files
         run: |
-          # Top‑level frontmatter and single TOC
+          # Master frontmatter and single TOC
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
           title: "GCCO"
           subtitle: "Markdown to Word"
-          date: "${{ steps.date.outputs.doc_date }}"
+          date: "$(date +%Y-%m-%d)"
           version: "v0.0.1"
           ---
 
@@ -51,11 +51,13 @@ jobs:
           \newpage
           EOF
 
-          # Find all .md files, sort, remove any internal TOC blocks, append
+          # Process each .md file (sorted, strip frontmatter and internal TOC divs)
           find docs -name "*.md" -not -name "combined.md" -print0 | sort -z | while IFS= read -r -d '' file; do
             echo "" >> "$RUNNER_TEMP/combined.md"
-            # Delete any ::: {#toc} ... ::: blocks
-            sed -E '/^:::\s*\{#toc\}/,/^:::/d' "$file" >> "$RUNNER_TEMP/combined.md"
+            # Remove leading frontmatter (between first two --- lines)
+            # Also remove any ::: {#toc} ... ::: blocks
+            sed -E '1{/^---$/!q;}; /^---$/d' "$file" | \
+            sed -E '/^:::\s*\{#toc\}/,/^:::/d' >> "$RUNNER_TEMP/combined.md"
             echo "" >> "$RUNNER_TEMP/combined.md"
           done
 
