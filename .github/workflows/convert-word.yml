@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      date:
+        description: 'Document date (YYYY-MM-DD) – leave empty for today'
+        required: false
+        default: ''
+      classification:
+        description: 'Classification text'
+        required: false
+        default: 'Unclassified | Non classifie'
 
 jobs:
   markdown-to-word:
@@ -14,13 +23,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set document date
+        id: date
+        run: |
+          if [ -z "${{ github.event.inputs.date }}" ]; then
+            echo "doc_date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          else
+            echo "doc_date=${{ github.event.inputs.date }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Combine All Markdown Files
         run: |
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
           title: "GCCO"
           subtitle: "Markdown to Word"
-          date: "$(date +%Y-%m-%d)"
+          date: "${{ steps.date.outputs.doc_date }}"
           version: "v0.0.1"
           ---
 
@@ -35,14 +53,15 @@ jobs:
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
-        uses: gccloudone/markdown-to-word@main
+        uses: gccloudone/markdown-to-word@main   # update to a fixed version later
         with:
           default_title: "[Untitled Document]"
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
+          classification: "${{ github.event.inputs.classification || 'Unclassified | Non classifie' }}"
         env:
-          PDF_FILE: ""
+          PDF_FILE: ""   # set to "output/sample.pdf" if you want PDF output
 
       - name: Upload Word Document
         uses: actions/upload-artifact@v7
