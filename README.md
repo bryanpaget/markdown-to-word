@@ -43,13 +43,18 @@ jobs:
   convert:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: gccloudone/markdown-to-word@main
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Convert Markdown to Word
+        uses: gccloudone/markdown-to-word@main
         with:
-          default_title: "My Document"
-          markdown_file: "docs/sample.md"
-          output_file: "output/sample.docx"
+          default_title: "[Untitled Document]"
+          markdown_file: "${{ runner.temp }}/combined.md"
+          output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
+        env:
+          PDF_FILE: ""
 ```
 
 > Important: This composite action does not perform its own repository checkout. The calling workflow must check out the repository before invoking the action.
