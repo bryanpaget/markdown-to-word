@@ -12,7 +12,7 @@ DEFAULT_LATEX_TEMPLATE="template/latex-template.tex"  # Default LaTeX template
 
 # Resolve the repository and script directories so relative paths work from any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
+REPO_ROOT="$SCRIPT_DIR"
 
 # Allow overriding defaults with environment variables or CLI arguments.
 TITLE="${1:-${TITLE:-$DEFAULT_TITLE}}"                # First argument, environment var, or default title
