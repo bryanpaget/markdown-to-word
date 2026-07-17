@@ -37,7 +37,8 @@ function CodeBlock(el)
   if el.classes:includes("ascii") then
     local data = run_ditaa(el.text)
     if data then
-      local name = "ascii-" .. os.time() .. ".png"
+      -- Use a media path (Pandoc will look inside the media bag)
+      local name = "media/ascii-" .. os.time() .. ".png"
       pandoc.mediabag.insert(name, "image/png", data)
       local img = pandoc.Image({}, name)
       return pandoc.Para({img})
