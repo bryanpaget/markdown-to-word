@@ -106,7 +106,6 @@ pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
                         --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
                         --lua-filter="$REPO_ROOT/filters/toc.lua" \
                         --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
-                        --lua-filter="$REPO_ROOT/filters/ascii-to-image.lua" \ 
                         -o "$OUTPUT_FILE" \
                         --reference-doc="$REFERENCE_DOC"
 
@@ -119,7 +118,7 @@ EXIT_CODE=$?
 if [[ -n "$PDF_FILE" ]]; then
     echo "🔄 Generating PDF '$PDF_FILE' with LaTeX template and smaller margins..."
     LATEX_TEMPLATE="$REPO_ROOT/$DEFAULT_LATEX_TEMPLATE"
-    
+
     # Generate LaTeX intermediate file
     TEMP_TEX="${PDF_FILE%.pdf}.tex"
     pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
@@ -128,7 +127,7 @@ if [[ -n "$PDF_FILE" ]]; then
                             --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
                             -o "$TEMP_TEX" \
                             --template="$LATEX_TEMPLATE"
-    
+
     # Compile LaTeX to PDF using xelatex (better font support) or pdflatex
     if command -v xelatex >/dev/null 2>&1; then
         xelatex -interaction nonstopmode "$TEMP_TEX" || true
@@ -137,7 +136,7 @@ if [[ -n "$PDF_FILE" ]]; then
         pdflatex -interaction nonstopmode "$TEMP_TEX" || true
         pdflatex -interaction nonstopmode "$TEMP_TEX" || true
     fi
-    
+
     # Move PDF to final location
     if [[ -f "${TEMP_TEX%.tex}.pdf" ]]; then
         mv "${TEMP_TEX%.tex}.pdf" "$PDF_FILE"
@@ -145,7 +144,7 @@ if [[ -n "$PDF_FILE" ]]; then
     else
         echo "⚠️  Warning: PDF generation failed."
     fi
-    
+
     # Clean up temporary files
     rm -f "$TEMP_TEX" "${TEMP_TEX%.tex}.aux" "${TEMP_TEX%.tex}.log" "${TEMP_TEX%.tex}.out" "${TEMP_TEX%.tex}.toc"
 fi
