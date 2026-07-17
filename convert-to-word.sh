@@ -106,6 +106,7 @@ pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
                         --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
                         --lua-filter="$REPO_ROOT/filters/toc.lua" \
                         --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+                        --lua-filter="$REPO_ROOT/filters/ascii-to-image.lua" \ 
                         -o "$OUTPUT_FILE" \
                         --reference-doc="$REFERENCE_DOC"
 
