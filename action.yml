@@ -34,8 +34,8 @@ runs:
       shell: bash
       run: |
         echo "Installing Pandoc 3.10..."
-        wget https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10.0.1-1-amd64.deb
-        sudo dpkg -i pandoc-3.10.0.1-1-amd64.deb
+        wget https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-amd64.deb
+        sudo dpkg -i pandoc-3.10-1-amd64.deb
         pandoc --version
 
         echo "Installing ditaa (for ASCII diagrams)..."
