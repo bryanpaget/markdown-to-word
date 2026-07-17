@@ -1,5 +1,5 @@
 -- ascii-to-image.lua
--- Converts ```ascii blocks to PNG via ditaa and embeds using pandoc.mediabag.
+-- Converts ```ascii blocks to PNG via ditaa, embeds as base64 data URL in HTML.
 
 local function run_ditaa(content)
   local tmp = os.tmpname() .. ".txt"
@@ -37,11 +37,12 @@ function CodeBlock(el)
   if el.classes:includes("ascii") then
     local data = run_ditaa(el.text)
     if data then
-      -- Use a media path (Pandoc will look inside the media bag)
-      local name = "media/ascii-" .. os.time() .. ".png"
-      pandoc.mediabag.insert(name, "image/png", data)
-      local img = pandoc.Image({}, name)
-      return pandoc.Para({img})
+      local base64 = pandoc.base64(data)
+      local html = string.format(
+        '<div style="text-align:center;border:1px solid black;padding:5px;"><img src="data:image/png;base64,%s" style="max-width:80%%;" /></div>',
+        base64
+      )
+      return pandoc.RawBlock('html', html)
     else
       io.stderr:write("Fallback: keeping original code block\n")
       return el
