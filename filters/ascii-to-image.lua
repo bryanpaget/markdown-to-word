@@ -1,41 +1,48 @@
 -- ascii-to-image.lua
--- Converts ```ascii blocks to PNG via ditaa, then outputs HTML for DOCX.
--- Falls back to the original code block if ditaa fails or is missing.
+-- Converts ```ascii blocks to PNG via ditaa and embeds using pandoc.mediabag.
 
 local function run_ditaa(content)
   local tmp = os.tmpname() .. ".txt"
   local f = io.open(tmp, "w")
   if not f then
-    io.stderr:write("Failed to create temp file\n")
+    io.stderr:write("Failed to create temp text file\n")
     return nil
   end
   f:write(content)
   f:close()
 
-  local outfile = "ascii-diagram-" .. os.time() .. ".png"
+  local outfile = os.tmpname() .. ".png"
   local cmd = string.format("ditaa --scale 2.0 --no-antialias --round-corners --no-shadows %s %s", tmp, outfile)
   local ret = os.execute(cmd)
   os.remove(tmp)
 
-  if ret then
-    local img = io.open(outfile, "r")
-    if img then
-      img:close()
-      return outfile
-    end
+  if not ret then
+    io.stderr:write("ditaa failed\n")
+    return nil
   end
-  io.stderr:write("ditaa failed to create PNG, falling back to code block\n")
-  return nil
+
+  local img = io.open(outfile, "rb")
+  if not img then
+    io.stderr:write("Could not open generated PNG\n")
+    return nil
+  end
+  local data = img:read("*all")
+  img:close()
+  os.remove(outfile)
+
+  return data
 end
 
 function CodeBlock(el)
   if el.classes:includes("ascii") then
-    local img_path = run_ditaa(el.text)
-    if img_path then
-      local html = string.format('<div style="text-align:center;border:1px solid black;padding:5px;"><img src="%s" style="max-width:80%%;" /></div>', img_path)
-      return pandoc.RawBlock('html', html)
+    local data = run_ditaa(el.text)
+    if data then
+      local name = "ascii-" .. os.time() .. ".png"
+      pandoc.mediabag.insert(name, "image/png", data)
+      local img = pandoc.Image({}, name)
+      return pandoc.Para({img})
     else
-      -- Return the original code block (no broken image)
+      io.stderr:write("Fallback: keeping original code block\n")
       return el
     end
   end
