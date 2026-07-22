@@ -111,14 +111,9 @@ if [[ -n "$PDF_FILE" ]]; then
     mkdir -p "$(dirname "$PDF_FILE")"
 fi
 
-TITLE_METADATA=""
-if [[ "$USE_TEMPLATE_TITLE" == "true" ]]; then
-    TITLE_METADATA="--metadata=title:\"$TITLE\""
-fi
-
 # === CONVERT TO WORD ===
 echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC' with title '$TITLE'..."
-pandoc "$MARKDOWN_FILE" $TITLE_METADATA \
+pandoc "$MARKDOWN_FILE" --metadata=title="$TITLE" \
     --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
     --lua-filter="$REPO_ROOT/filters/toc.lua" \
     --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
