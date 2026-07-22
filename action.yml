@@ -3,6 +3,10 @@ description: "Converts a Markdown file to a Word document using Pandoc."
 author: "gccloudone"
 
 inputs:
+  use_template_title:
+    description: 'Whether to use the template cover (default: true)'
+    required: false
+    default: 'true'
   number_sections:
     description: 'Add section numbers to headings (--number-sections)'
     required: false
