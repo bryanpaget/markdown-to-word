@@ -9,6 +9,7 @@ DEFAULT_REFERENCE_DOC="template/ssc-template-v2.7.dotx"  # Default reference tem
 DEFAULT_CLASSIFICATION="Unclassified | Non classifie"  # Default classification text
 DEFAULT_PDF_FILE=""                       # Default PDF file (empty = no PDF generation)
 DEFAULT_LATEX_TEMPLATE="template/latex-template.tex"  # Default LaTeX template
+USE_TEMPLATE_TITLE="${INPUT_USE_TEMPLATE_TITLE:-true}"
 
 # Resolve the repository and script directories so relative paths work from any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -110,15 +111,20 @@ if [[ -n "$PDF_FILE" ]]; then
     mkdir -p "$(dirname "$PDF_FILE")"
 fi
 
+TITLE_METADATA=""
+if [[ "$USE_TEMPLATE_TITLE" == "true" ]]; then
+    TITLE_METADATA="--metadata=title:\"$TITLE\""
+fi
+
 # === CONVERT TO WORD ===
 echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC' with title '$TITLE'..."
-pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
-                        --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
-                        --lua-filter="$REPO_ROOT/filters/toc.lua" \
-                        --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
-                        $NUMBER_SECTIONS_FLAG \
-                        -o "$OUTPUT_FILE" \
-                        --reference-doc="$REFERENCE_DOC"
+pandoc "$MARKDOWN_FILE" $TITLE_METADATA \
+    --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
+    --lua-filter="$REPO_ROOT/filters/toc.lua" \
+    --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+    $NUMBER_SECTIONS_FLAG \
+    -o "$OUTPUT_FILE" \
+    --reference-doc="$REFERENCE_DOC"
 
 # Run any additional processing scripts (if needed):
 python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$TITLE" "$CLASSIFICATION"
