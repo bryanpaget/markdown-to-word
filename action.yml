@@ -3,6 +3,10 @@ description: "Converts a Markdown file to a Word document using Pandoc."
 author: "gccloudone"
 
 inputs:
+  skip_combine:
+    description: 'Skip the automatic file combining (use markdown_file as-is)'
+    required: false
+    default: 'false'
   use_template_title:
     description: 'Whether to use the template cover (default: true)'
     required: false

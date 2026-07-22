@@ -14,7 +14,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Combine All Markdown Files
+      - name: Combine All Markdown Files (if not skipped)
+        if: inputs.skip_combine != 'true'
         run: |
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
