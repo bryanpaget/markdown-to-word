@@ -41,6 +41,7 @@ jobs:
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
+          number_sections: true
         env:
           PDF_FILE: ""
 

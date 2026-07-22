@@ -20,7 +20,16 @@ MARKDOWN_FILE="${2:-${MARKDOWN_FILE:-$DEFAULT_MD_FILE}}"      # Second argument,
 OUTPUT_FILE="${3:-${OUTPUT_FILE:-$DEFAULT_OUTPUT_FILE}}"    # Third argument, env var, or default output DOCX file
 REFERENCE_DOC="${4:-${REFERENCE_DOC:-$DEFAULT_REFERENCE_DOC}}" # Fourth argument, env var, or default reference template
 CLASSIFICATION="${5:-${CLASSIFICATION:-$DEFAULT_CLASSIFICATION}}" # Fifth argument, env var, or default classification
-PDF_FILE="${5:-${PDF_FILE:-$DEFAULT_PDF_FILE}}"              # Fifth argument, env var, or default PDF file (empty = skip)
+
+# PDF_FILE is now only set from environment (not overridden by positional arguments)
+PDF_FILE="${PDF_FILE:-$DEFAULT_PDF_FILE}"
+
+# Read number_sections from GitHub Actions input (environment)
+INPUT_NUMBER_SECTIONS="${INPUT_NUMBER_SECTIONS:-false}"
+NUMBER_SECTIONS_FLAG=""
+if [[ "$INPUT_NUMBER_SECTIONS" == "true" || "$INPUT_NUMBER_SECTIONS" == "1" || "$INPUT_NUMBER_SECTIONS" == "yes" ]]; then
+    NUMBER_SECTIONS_FLAG="--number-sections"
+fi
 
 # === FUNCTIONS ===
 usage() {
@@ -30,6 +39,7 @@ usage() {
     echo "  output_file: Path to the output DOCX file (default: '$DEFAULT_OUTPUT_FILE')."
     echo "  reference_doc: Path to the DOCX reference template (default: '$DEFAULT_REFERENCE_DOC')."
     echo "  classification: Classification text for the header (default: '$DEFAULT_CLASSIFICATION')."
+    echo "  (Section numbering is controlled by the INPUT_NUMBER_SECTIONS environment variable.)"
     exit 1
 }
 
@@ -106,6 +116,7 @@ pandoc "$MARKDOWN_FILE" --metadata=title:"$TITLE" \
                         --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
                         --lua-filter="$REPO_ROOT/filters/toc.lua" \
                         --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+                        $NUMBER_SECTIONS_FLAG \
                         -o "$OUTPUT_FILE" \
                         --reference-doc="$REFERENCE_DOC"
 
@@ -125,6 +136,7 @@ if [[ -n "$PDF_FILE" ]]; then
                             --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
                             --lua-filter="$REPO_ROOT/filters/toc.lua" \
                             --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+                            $NUMBER_SECTIONS_FLAG \
                             -o "$TEMP_TEX" \
                             --template="$LATEX_TEMPLATE"
 
