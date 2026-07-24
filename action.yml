@@ -42,17 +42,13 @@ runs:
       with:
         node-version: '24'
 
-    - name: Install Pandoc 3.10 and ditaa
+    - name: Install Pandoc 3.10
       shell: bash
       run: |
         echo "Installing Pandoc 3.10..."
         wget https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-amd64.deb
         sudo dpkg -i pandoc-3.10-1-amd64.deb
         pandoc --version
-
-        echo "Installing ditaa (for ASCII diagrams)..."
-        sudo apt-get update
-        sudo apt-get install -y ditaa
 
     - name: Install Mermaid CLI
       shell: bash

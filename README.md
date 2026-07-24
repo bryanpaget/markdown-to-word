@@ -18,10 +18,21 @@ TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.do
 
 ## Requirements
 
-- `pandoc`
+- `pandoc` (3.0+)
 - `python3`
 - Python package `python-docx`
 - `@mermaid-js/mermaid-cli` (`mmdc`)
+
+## How It Works
+
+1. **Pandoc** converts Markdown to DOCX using a reference template (`template/ssc-template-v2.7.dotx`)
+2. **Lua filters** handle:
+   - `pagebreak.lua` — converts `\newpage`/`\pagebreak` to docx page breaks
+   - `toc.lua` — replaces a `:::{#toc}:::` placeholder with a table of contents
+   - `mermaid.lua` — renders mermaid code blocks as embedded images
+3. **Python scripts** post-process the DOCX:
+   - `update_header.py` — sets the title and classification in the document header
+   - `update_tables.py` — shrinks table fonts to 9pt
 
 ## Notes
 
@@ -29,6 +40,7 @@ TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.do
 - Output directories are created automatically.
 - The DOCX reference template is configured for standard US Letter size (8.5" x 11").
 - The title is written to both DOCX metadata and the header, replacing the "[Enter Document Title]" placeholder in the template.
+- Section numbering is controlled by the `INPUT_NUMBER_SECTIONS` environment variable.
 
 ## GitHub Action
 
@@ -53,8 +65,6 @@ jobs:
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
-        env:
-          PDF_FILE: ""
 ```
 
 > Important: This composite action does not perform its own repository checkout. The calling workflow must check out the repository before invoking the action.
