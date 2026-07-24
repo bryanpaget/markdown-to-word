@@ -107,10 +107,44 @@ local function pipe (command, args, input)
   return pandoc.pipe(cmd, args, input)
 end
 
+
 --
--- Diagram Engine: Mermaid
+-- Diagram Engines
 --
 
+-- PlantUML engine; assumes that there's a `plantuml` binary.
+local plantuml = {
+  line_comment_start =  [[']],
+  mime_types = mime_types_set{'pdf', 'png', 'svg'},
+  compile = function (self, puml)
+    local mime_type = self.mime_type or 'image/svg+xml'
+    -- PlantUML format identifiers correspond to common file extensions.
+    local format = extension_for_mimetype[mime_type]
+    if not format then
+      format, mime_type = 'svg', 'image/svg+xml'
+    end
+    local args = {'-t' .. format, "-pipe", "-charset", "UTF8"}
+    return pipe(self.execpath or 'plantuml', args, puml), mime_type
+  end,
+}
+
+--- GraphViz engine for the dot language
+local graphviz = {
+  line_comment_start = '//',
+  mime_types = mime_types_set{'jpg', 'pdf', 'png', 'svg'},
+  mime_type = 'image/svg+xml',
+  compile = function (self, code)
+    local mime_type = self.mime_type
+    -- GraphViz format identifiers correspond to common file extensions.
+    local format = extension_for_mimetype[mime_type]
+    if not format then
+      format, mime_type = 'svg', 'image/svg+xml'
+    end
+    return pipe(self.execpath or 'dot', {"-T"..format}, code), mime_type
+  end,
+}
+
+--- Mermaid engine
 local mermaid = {
   line_comment_start = '%%',
   mime_types = mime_types_set{'pdf', 'png', 'svg'},
@@ -138,8 +172,176 @@ local mermaid = {
   end,
 }
 
+--- TikZ
+--
+
+--- LaTeX template used to compile TikZ images.
+local tikz_template = pandoc.template.compile [[
+\documentclass{standalone}
+\usepackage{tikz}
+$for(header-includes)$
+$it$
+$endfor$
+$additional-packages$
+\begin{document}
+$body$
+\end{document}
+]]
+
+--- The TikZ engine uses pdflatex to compile TikZ code to an image
+local tikz = {
+  line_comment_start = '%%',
+
+  mime_types = {
+    ['application/pdf'] = true,
+  },
+
+  --- Compile LaTeX with TikZ code to an image
+  compile = function (self, src, user_opts)
+    return with_temporary_directory("tikz", function (tmpdir)
+      return with_working_directory(tmpdir, function ()
+        -- Define file names:
+        local file_template = "%s/tikz-image.%s"
+        local tikz_file = file_template:format(tmpdir, "tex")
+        local pdf_file = file_template:format(tmpdir, "pdf")
+
+        -- Treat string values as raw LaTeX
+        local meta = {
+          ['header-includes'] = user_opts['header-includes'],
+          ['additional-packages'] = {pandoc.RawInline(
+            'latex',
+            stringify(user_opts['additional-packages'] or '')
+          )},
+        }
+        local tex_code = pandoc.write(
+          pandoc.Pandoc({pandoc.RawBlock('latex', src)}, meta),
+          'latex',
+          {template = tikz_template}
+        )
+        write_file(tikz_file, tex_code)
+
+        -- Execute the LaTeX compiler:
+        local success, result = pcall(
+          pipe,
+          self.execpath or 'pdflatex',
+          { '-interaction=nonstopmode', '-output-directory', tmpdir, tikz_file },
+          ''
+        )
+        if not success then
+          warn(string.format(
+                 "The call\n%s\nfailed with error code %s. Output:\n%s",
+                 result.command,
+                 result.error_code,
+                 result.output
+          ))
+        end
+        return read_file(pdf_file), 'application/pdf'
+      end)
+    end)
+  end
+}
+
+--- Asymptote diagram engine
+local asymptote = {
+  line_comment_start = '%%',
+  mime_types = {
+    ['application/pdf'] = true,
+  },
+  compile = function (self, code)
+    return with_temporary_directory("asymptote", function(tmpdir)
+      return with_working_directory(tmpdir, function ()
+        local pdf_file = "pandoc_diagram.pdf"
+        local args = {'-tex', 'pdflatex', "-o", "pandoc_diagram", '-'}
+        pipe(self.execpath or 'asy', args, code)
+        return read_file(pdf_file), 'application/pdf'
+      end)
+    end)
+  end,
+}
+
+--- Cetz diagram engine
+local cetz = {
+  line_comment_start = '%%',
+  mime_types = mime_types_set{'jpg', 'pdf', 'png', 'svg'},
+  mime_type = 'image/svg+xml',
+  compile = function (self, code)
+    local mime_type = self.mime_type
+    local format = extension_for_mimetype[mime_type]
+    if not format then
+      format, mime_type = 'svg', 'image/svg+xml'
+    end
+    local preamble = [[
+#import "@preview/cetz:0.3.4"
+#set page(width: auto, height: auto, margin: .5cm)
+]]
+
+    local typst_code = preamble .. code
+
+    return with_temporary_directory("diagram", function (tmpdir)
+      return with_working_directory(tmpdir, function ()
+        local outfile = 'diagram.' .. format
+        local execpath = self.execpath
+        if not execpath and quarto and quarto.version >= '1.4' then
+          -- fall back to the Typst exec shipped with Quarto.
+          execpath = List{'quarto', 'typst'}
+        end
+        pipe(
+          execpath or 'typst',
+          {"compile", "-f", format, "-", outfile},
+          typst_code
+        )
+        return read_file(outfile), mime_type
+      end)
+    end)
+  end,
+}
+
+--- D2 engine for the D2 language
+local d2 = {
+  line_comment_start = '#',
+  mime_types = mime_types_set{'png', 'svg'},
+
+  compile = function (self, code, user_opts)
+    return with_temporary_directory('diagram', function (tmpdir)
+      return with_working_directory(tmpdir, function ()
+        -- D2 format identifiers correspond to common file extensions.
+        local mime_type = self.mime_type or 'image/svg+xml'
+        local file_extension = extension_for_mimetype[mime_type]
+        local infile = 'diagram.d2'
+        local outfile = 'diagram.' .. file_extension
+
+        args = {'--bundle', '--pad=0', '--scale=1'}
+
+        d2_user_opts = {
+          'layout',
+        }
+        for _, d2_user_opt in pairs(d2_user_opts) do
+          if user_opts[d2_user_opt] then
+            table.insert(args, '--' .. d2_user_opt .. '=' .. user_opts[d2_user_opt])
+          end
+        end
+
+        table.insert(args, infile)
+        table.insert(args, outfile)
+
+        write_file(infile, code)
+
+        pipe(self.execpath or 'd2', args, '')
+
+        return read_file(outfile), mime_type
+      end)
+    end)
+  end,
+}
+
 local default_engines = {
-  mermaid = mermaid,
+  asymptote = asymptote,
+  dot       = graphviz,
+  mermaid   = mermaid,
+  plantuml  = plantuml,
+  tikz      = tikz,
+  cetz      = cetz,
+  d2        = d2,
 }
 
 --
@@ -252,6 +454,9 @@ end
 
 --- Converts a PDF to SVG.
 local pdf2svg = function (imgdata)
+  -- Using `os.tmpname()` instead of a hash would be slightly cleaner, but the
+  -- function causes problems on Windows (and wasm). See, e.g.,
+  -- https://github.com/pandoc-ext/diagram/issues/49
   local pdf_file = 'diagram-' .. pandoc.utils.sha1(imgdata) .. '.pdf'
   write_file(pdf_file, imgdata)
   local args = {
