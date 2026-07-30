@@ -4,7 +4,7 @@ from docx import Document
 from docx.shared import Pt
 
 def update_tables(docx_path):
-    # Ensure the docx_path is an absolute path
+    # SSC table formatting — sets compact 9pt font for technical documents
     docx_path = os.path.abspath(docx_path)
 
     # Check if the file exists

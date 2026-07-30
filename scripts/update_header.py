@@ -5,7 +5,7 @@ import re
 import tempfile
 
 def update_header(docx_path, title_text, classification=None):
-    # Ensure the docx_path is an absolute path
+    # SSC document header injection — sets title and bilingual classification in DOCX headers
     docx_path = os.path.abspath(docx_path)
 
     # Check if the file exists
