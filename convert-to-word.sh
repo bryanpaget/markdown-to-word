@@ -90,8 +90,14 @@ fi
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 # === CONVERT TO WORD ===
-echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC' with title '$TITLE'..."
-pandoc "$MARKDOWN_FILE" --metadata=title="$TITLE" \
+# Only override the title if the caller explicitly provided one (not the default placeholder)
+TITLE_FLAG=""
+if [[ "$TITLE" != "$DEFAULT_TITLE" ]]; then
+    TITLE_FLAG="--metadata=title=$TITLE"
+fi
+
+echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC'..."
+pandoc "$MARKDOWN_FILE" $TITLE_FLAG \
     --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
     --lua-filter="$REPO_ROOT/filters/toc.lua" \
     --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
@@ -99,7 +105,17 @@ pandoc "$MARKDOWN_FILE" --metadata=title="$TITLE" \
     -o "$OUTPUT_FILE" \
     --reference-doc="$REFERENCE_DOC"
 
-python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$TITLE" "$CLASSIFICATION"
+# Use frontmatter title for header if available, fall back to provided title
+HEADER_TITLE="$TITLE"
+if [[ -z "$TITLE_FLAG" ]]; then
+    # Extract title from frontmatter
+    FRONTMATTER_TITLE=$(awk '/^---$/{n++} n==1 && /^title:/{gsub(/^title: *"?/,""); gsub(/"$/,""); print; exit}' "$MARKDOWN_FILE")
+    if [[ -n "$FRONTMATTER_TITLE" ]]; then
+        HEADER_TITLE="$FRONTMATTER_TITLE"
+    fi
+fi
+
+python3 "$REPO_ROOT/scripts/update_header.py" "$OUTPUT_FILE" "$HEADER_TITLE" "$CLASSIFICATION"
 python3 "$REPO_ROOT/scripts/update_tables.py" "$OUTPUT_FILE"
 
 echo "✅ Conversion successful: $OUTPUT_FILE"

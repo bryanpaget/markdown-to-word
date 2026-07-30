@@ -3,14 +3,6 @@ description: "Converts a Markdown file to a Word document using Pandoc."
 author: "gccloudone"
 
 inputs:
-  skip_combine:
-    description: 'Skip the automatic file combining (use markdown_file as-is)'
-    required: false
-    default: 'false'
-  use_template_title:
-    description: 'Whether to use the template cover (default: true)'
-    required: false
-    default: 'true'
   number_sections:
     description: 'Add section numbers to headings (--number-sections)'
     required: false
@@ -69,5 +61,5 @@ runs:
         "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
                                                        "${{ inputs.markdown_file }}" \
                                                        "${{ inputs.output_file }}" \
-                                                       "${{ github.action_path }}/${{ inputs.reference_doc }}" \
+                                                       "${{ inputs.reference_doc }}" \
                                                        "${{ inputs.classification }}"

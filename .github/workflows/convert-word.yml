@@ -46,7 +46,12 @@ jobs:
 
           \newpage
           EOF
-          find docs -name "*.md" -not -name "combined.md" -exec sh -c 'cat "$@"; echo' _ {} + >> "$RUNNER_TEMP/combined.md"
+          find docs -name "*.md" -not -name "combined.md" -exec sh -c '
+            for f in "$@"; do
+              awk "NR==1 && /^---$/ { skip=1; next } skip && /^---$/ { skip=0; next } !skip" "$f"
+              echo
+            done
+          ' _ {} + >> "$RUNNER_TEMP/combined.md"
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
