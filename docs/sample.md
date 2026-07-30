@@ -317,7 +317,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Convert to Word
-        uses: gccloudone/markdown-to-word@main
+        uses: bryanpaget/markdown-to-word@main
         with:
           default_title: "My Document"
           markdown_file: "docs/content.md"
@@ -343,7 +343,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Convert to Word
-        uses: gccloudone/markdown-to-word@main
+        uses: bryanpaget/markdown-to-word@main
         with:
           default_title: "${{ inputs.doc_title }}"
           markdown_file: "docs/report.md"

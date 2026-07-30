@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>markdown-to-word · SSC GitHub Action</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0f1419;
+      --surface:   #1a1f2e;
+      --border:    #2a3040;
+      --text:      #e8edf5;
+      --muted:     #8b95a8;
+      --accent:    #d52b1e;
+      --accent2:   #406e8e;
+      --radius:    8px;
+      --max-w:     920px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #e85d4a; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+    }
+
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0f1419 0%, #141b2d 40%, #1a2840 70%, #0f1419 100%);
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-bg svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .hero .container {
+      position: relative;
+      z-index: 1;
+    }
+    .hero-icon {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero .flag {
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0 4px;
+    }
+    .hero p {
+      margin-top: 16px;
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero .gov-badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      background: #1a2840;
+      color: #8fb0d0;
+      border: 1px solid #2a4060;
+    }
+    .hero-buttons {
+      margin-top: 32px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: background .15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #e03a2a; text-decoration: none; }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: #222840; text-decoration: none; }
+
+    section { padding: 60px 0; }
+    section + section { border-top: 1px solid var(--border); }
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    h2 + p { color: var(--muted); margin-bottom: 32px; }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .feature-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+    }
+    .feature h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .feature p { font-size: 0.9rem; color: var(--muted); }
+
+    pre {
+      background: #0f1419;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: #e8edf5;
+    }
+    .code-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: 0;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 8px 16px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .code-header + pre { border-radius: 0 0 var(--radius) var(--radius); }
+
+    .inputs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .inputs-table th, .inputs-table td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .inputs-table th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--text); }
+    footer .gc-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 1.8rem; }
+      .hero { padding: 48px 0 24px; }
+      .hero-bg svg { height: 280px; }
+      section { padding: 36px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-bg">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0f1419"/>
+          <stop offset="50%" stop-color="#141b2d"/>
+          <stop offset="100%" stop-color="#0f1419"/>
+        </linearGradient>
+      </defs>
+      <rect width="1440" height="400" fill="url(#sky)"/>
+      <g stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.15">
+        <line x1="200" y1="280" x2="220" y2="260" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="220" y1="260" x2="240" y2="280" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="215" y1="280" x2="225" y2="265" stroke="#d52b1e" stroke-width="2"/>
+        <line x1="225" y1="265" x2="235" y2="280" stroke="#d52b1e" stroke-width="2"/>
+        <line x1="310" y1="270" x2="326" y2="252" stroke="#406e8e" stroke-width="3"/>
+        <line x1="326" y1="252" x2="342" y2="270" stroke="#406e8e" stroke-width="3"/>
+        <line x1="323" y1="270" x2="330" y2="258" stroke="#406e8e" stroke-width="2"/>
+        <line x1="330" y1="258" x2="337" y2="270" stroke="#406e8e" stroke-width="2"/>
+        <line x1="420" y1="285" x2="440" y2="265" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="440" y1="265" x2="460" y2="285" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="900" y1="275" x2="920" y2="255" stroke="#406e8e" stroke-width="3"/>
+        <line x1="920" y1="255" x2="940" y2="275" stroke="#406e8e" stroke-width="3"/>
+        <line x1="1000" y1="265" x2="1016" y2="248" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="1016" y1="248" x2="1032" y2="265" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="1050" y1="250" x2="1060" y2="238" stroke="#406e8e" stroke-width="2"/>
+        <line x1="1060" y1="238" x2="1070" y2="250" stroke="#406e8e" stroke-width="2"/>
+        <line x1="1150" y1="280" x2="1170" y2="258" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="1170" y1="258" x2="1190" y2="280" stroke="#d52b1e" stroke-width="3"/>
+        <line x1="500" y1="260" x2="510" y2="248" stroke="#d52b1e" stroke-width="2"/>
+        <line x1="510" y1="248" x2="520" y2="260" stroke="#d52b1e" stroke-width="2"/>
+        <line x1="600" y1="290" x2="620" y2="268" stroke="#406e8e" stroke-width="3"/>
+        <line x1="620" y1="268" x2="640" y2="290" stroke="#406e8e" stroke-width="3"/>
+      </g>
+      <rect x="670" y="230" width="100" height="2" rx="1" fill="#d52b1e" opacity="0.08"/>
+      <rect x="640" y="250" width="160" height="1" rx="1" fill="#406e8e" opacity="0.06"/>
+      <rect x="700" y="270" width="40" height="1" rx="1" fill="#d52b1e" opacity="0.05"/>
+      <g opacity="0.03">
+        <path d="M0 350 Q100 330 200 345 Q300 320 400 340 Q500 310 600 335 Q700 300 800 330 Q900 310 1000 335 Q1100 320 1200 340 Q1300 310 1440 330 L1440 400 L0 400Z" fill="#d52b1e"/>
+        <path d="M0 370 Q120 350 240 365 Q360 340 480 360 Q600 330 720 355 Q840 340 960 360 Q1080 345 1200 365 Q1320 350 1440 365 L1440 400 L0 400Z" fill="#406e8e"/>
+      </g>
+    </svg>
+  </div>
+  <div class="container">
+    <div class="hero-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="80" height="80">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d52b1e"/>
+            <stop offset="100%" stop-color="#a82315"/>
+          </linearGradient>
+        </defs>
+        <rect x="8" y="6" width="48" height="52" rx="6" fill="#1a1f2e" stroke="#2a3040" stroke-width="2"/>
+        <rect x="8" y="6" width="48" height="12" rx="6" fill="url(#g)"/>
+        <rect x="8" y="12" width="48" height="6" fill="url(#g)"/>
+        <rect x="14" y="24" width="36" height="3" rx="1.5" fill="#e8edf5" opacity=".9"/>
+        <rect x="14" y="32" width="28" height="3" rx="1.5" fill="#e8edf5" opacity=".5"/>
+        <rect x="14" y="40" width="20" height="3" rx="1.5" fill="#e8edf5" opacity=".3"/>
+        <rect x="14" y="48" width="14" height="3" rx="1.5" fill="#e8edf5" opacity=".2"/>
+      </svg>
+    </div>
+    <h1>Markdown to <span>Word</span></h1>
+    <p>
+      A GitHub Action that converts Government of Canada Markdown documentation
+      into professionally formatted Word documents using the SSC template.
+    </p>
+    <div class="gov-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="#d52b1e" style="vertical-align:middle;margin-right:6px;">
+        <rect x="1" y="8" width="22" height="8" rx="2"/>
+        <rect x="10" y="2" width="4" height="20" rx="1"/>
+      </svg>
+      Shared Services Canada &middot; Government of Canada
+    </div>
+    <div class="hero-buttons">
+      <a class="btn btn-primary" href="https://github.com/bryanpaget/markdown-to-word">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-secondary" href="#features">Features</a>
+      <a class="btn btn-secondary" href="#usage">Usage</a>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="container">
+    <h2>Features</h2>
+    <p>Built for the Government of Canada documentation workflow.</p>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon" style="background:#d52b1e22;color:#d52b1e;">W</div>
+        <h3>SSC template</h3>
+        <p>Output uses the official SSC Word template with cover page, headers, and classification banner.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#406e8e22;color:#406e8e;">M</div>
+        <h3>Mermaid diagrams</h3>
+        <p>Render <code>```mermaid</code> code blocks as embedded images — sequence, flowchart, class diagrams, and more.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#d52b1e22;color:#d52b1e;">&#8594;</div>
+        <h3>Markdown &rarr; DOCX</h3>
+        <p>Converts Markdown to Word with section numbering, page breaks, and a clickable table of contents.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#406e8e22;color:#406e8e;">T</div>
+        <h3>Table of Contents</h3>
+        <p>Place <code>:::{#toc}:::</code> in your Markdown and a Word TOC field is injected automatically.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#d52b1e22;color:#d52b1e;">&para;</div>
+        <h3>Page breaks</h3>
+        <p>Use <code>\newpage</code> in your Markdown for precise control over page breaks in the output.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#406e8e22;color:#406e8e;">#</div>
+        <h3>Classification header</h3>
+        <p>Document classification (Unclassified, Protected A/B/C) is set in the header and document properties.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#d52b1e22;color:#d52b1e;">&equiv;</div>
+        <h3>Table formatting</h3>
+        <p>Table cells are sized for readability with a compact 9pt font suited to technical documents.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" style="background:#406e8e22;color:#406e8e;">+</div>
+        <h3>Zero-config setup</h3>
+        <p>Pandoc, Mermaid CLI, and Python dependencies are installed automatically in CI.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="usage">
+  <div class="container">
+    <h2>Usage</h2>
+    <p>Add a step to your GitHub Actions workflow.</p>
+
+    <div class="code-header">Basic usage &bull; <code>workflow.yml</code></div>
+    <pre>- name: Convert Markdown to Word
+  uses: bryanpaget/markdown-to-word@main
+  with:
+    default_title: "Incident Response Plan"
+    markdown_file: "docs/incident-response.md"
+    output_file:   "output/incident-response.docx"</pre>
+
+    <div style="margin-top:20px;" class="code-header">With section numbering &bull; <code>workflow.yml</code></div>
+    <pre>- name: Convert Markdown to Word
+  uses: bryanpaget/markdown-to-word@main
+  with:
+    default_title: "Aurora Security Baseline"
+    markdown_file: "docs/security-baseline.md"
+    output_file:   "output/security-baseline.docx"
+    number_sections: "true"</pre>
+
+    <h3 style="margin-top:36px;">Inputs</h3>
+    <table class="inputs-table">
+      <thead>
+        <tr><th>Input</th><th>Required</th><th>Default</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>default_title</code></td><td>yes</td><td>&mdash;</td><td>Title for the Word document</td></tr>
+        <tr><td><code>markdown_file</code></td><td>yes</td><td>&mdash;</td><td>Path to the Markdown file to convert</td></tr>
+        <tr><td><code>output_file</code></td><td>no</td><td><code>output/output.docx</code></td><td>Path for the output DOCX</td></tr>
+        <tr><td><code>reference_doc</code></td><td>no</td><td><code>template/ssc-template-v2.7.dotx</code></td><td>SSC Word template</td></tr>
+        <tr><td><code>classification</code></td><td>no</td><td><code>Unclassified | Non classifi&eacute;</code></td><td>Classification in document header</td></tr>
+        <tr><td><code>number_sections</code></td><td>no</td><td><code>false</code></td><td>Add numbered headings</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="template">
+  <div class="container">
+    <h2>SSC Template</h2>
+    <p>
+      This action uses the official SSC Word template (<code>ssc-template-v2.7.dotx</code>)
+      as the base for all conversions. The template provides:
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:20px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:0.9rem;">
+        <strong style="color:var(--accent);">&#9679; Cover page</strong>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:4px;">Title, subtitle, date, version, and classification on a formal cover sheet.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:0.9rem;">
+        <strong style="color:var(--accent2);">&#9679; Headers &amp; footers</strong>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:4px;">Document title and classification repeated on every page.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:0.9rem;">
+        <strong style="color:var(--accent);">&#9679; Fonts</strong>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:4px;">Carlito (Calibri substitute) with Liberation Serif for headings &mdash; GC-compliant typefaces.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;font-size:0.9rem;">
+        <strong style="color:var(--accent2);">&#9679; Styling</strong>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:4px;">Heading styles, table formatting, and list styles consistent with GC documentation standards.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p><a href="https://github.com/bryanpaget/markdown-to-word">bryanpaget/markdown-to-word</a> &middot; maintained for SSC Aurora documentation</p>
+    <div class="gc-logo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#d52b1e">
+        <rect x="1" y="8" width="22" height="8" rx="2"/>
+        <rect x="10" y="2" width="4" height="20" rx="1"/>
+      </svg>
+      Shared Services Canada
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
