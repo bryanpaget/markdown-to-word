@@ -5,8 +5,8 @@ set -euo pipefail
 DEFAULT_TITLE="[Untitled Document]"        # Default title for the DOCX file
 DEFAULT_MD_FILE="docs/sample.md"          # Default Markdown file path
 DEFAULT_OUTPUT_FILE="output/sample.docx"  # Default output file path
-DEFAULT_REFERENCE_DOC="template/ssc-template-v2.7.dotx"  # Default reference template
-DEFAULT_CLASSIFICATION="Unclassified | Non classifie"  # Default classification text
+DEFAULT_REFERENCE_DOC="template/ssc-template-v2.7.dotx"  # SSC Word template
+DEFAULT_CLASSIFICATION="Unclassified | Non classifie"  # Bilingual classification text
 
 # Resolve the repository and script directories so relative paths work from any working directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,7 +32,7 @@ usage() {
     echo "  title: Title to set in the DOCX metadata (default: '$DEFAULT_TITLE')."
     echo "  markdown_file: Path to the Markdown file (default: '$DEFAULT_MD_FILE')."
     echo "  output_file: Path to the output DOCX file (default: '$DEFAULT_OUTPUT_FILE')."
-    echo "  reference_doc: Path to the DOCX reference template (default: '$DEFAULT_REFERENCE_DOC')."
+    echo "  reference_doc: Path to the SSC Word template (default: '$DEFAULT_REFERENCE_DOC')."
     echo "  classification: Classification text for the header (default: '$DEFAULT_CLASSIFICATION')."
     echo "  (Section numbering is controlled by the INPUT_NUMBER_SECTIONS environment variable.)"
     exit 1

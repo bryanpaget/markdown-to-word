@@ -1,6 +1,6 @@
-name: "Markdown to Word Converter"
-description: "Converts a Markdown file to a Word document using Pandoc."
-author: "gccloudone"
+name: "Markdown to Word - SSC Template"
+description: "Converts Government of Canada Markdown to Word documents using the SSC template."
+author: "Shared Services Canada (SSC)"
 
 inputs:
   number_sections:
@@ -22,7 +22,7 @@ inputs:
     required: false
     default: "template/ssc-template-v2.7.dotx"
   classification:
-    description: "Classification text for the document header (e.g., 'UNCLASSIFIED | Non classifie')."
+    description: "Bilingual classification text for the SSC document header (e.g., 'Protected A' or 'CONFIDENTIAL')."
     required: false
     default: "Unclassified | Non classifie"
 

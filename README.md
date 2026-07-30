@@ -1,22 +1,36 @@
 # Markdown to Word &middot; SSC GitHub Action
 
+[![SSC Template](https://img.shields.io/badge/SSC-Template%20v2.7-d52b1e?style=flat-square&labelColor=1a1f2e)](template/ssc-template-v2.7.dotx)
+[![Government of Canada](https://img.shields.io/badge/Gov't%20of%20Canada-Compatible-1a2840?style=flat-square&labelColor=0f1419)](docs/index.html)
+
 Converts Government of Canada Markdown documentation into professionally formatted
-Word documents (`.docx`) using the [SSC template](template/ssc-template-v2.7.dotx).
+Word documents (`.docx`) using the official [Shared Services Canada (SSC) template](template/ssc-template-v2.7.dotx).
 
 > **Website**: [bryanpaget.github.io/markdown-to-word](https://bryanpaget.github.io/markdown-to-word)
 
+## SSC Template
+
+This action is purpose-built for the SSC documentation workflow. The reference template (`template/ssc-template-v2.7.dotx`) provides:
+
+- **Cover page** — title, subtitle, date, version, and classification banner
+- **Headers & footers** — document title and bilingual classification on every page
+- **GC-compliant fonts** — Carlito (Calibri substitute), Liberation Serif for headings
+- **Classification handling** — set `UNCLASSIFIED`, `Protected A`, `Protected B`, or `CONFIDENTIAL` via the `classification` input
+- **Bilingual support** — default classification is `Unclassified | Non classifi&eacute;`
+
 ## Usage
 
-Convert a Markdown file to Word locally:
-
 ```bash
-./convert-to-word.sh "My Document Title" docs/sample.md output/sample.docx template/ssc-template-v2.7.dotx
+./convert-to-word.sh "Incident Response Plan" docs/incident-response.md output/incident-response.docx
 ```
 
 With environment variables:
 
 ```bash
-TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.docx" REFERENCE_DOC="template/ssc-template-v2.7.dotx" ./convert-to-word.sh
+TITLE="Incident Response Plan" \
+MARKDOWN_FILE="docs/incident-response.md" \
+OUTPUT_FILE="output/incident-response.docx" \
+./convert-to-word.sh
 ```
 
 ## Requirements
@@ -47,9 +61,9 @@ TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.do
 | `default_title` | yes | &mdash; | Title for the Word document |
 | `markdown_file` | yes | &mdash; | Path to the Markdown file |
 | `output_file` | no | `output/output.docx` | Output DOCX path |
-| `reference_doc` | no | `template/ssc-template-v2.7.dotx` | SSC template |
-| `classification` | no | `Unclassified \| Non classifi&eacute;` | Document classification |
-| `number_sections` | no | `false` | Numbered headings |
+| `reference_doc` | no | `template/ssc-template-v2.7.dotx` | SSC Word template (`.dotx`) |
+| `classification` | no | `Unclassified \| Non classifi&eacute;` | Bilingual classification in header |
+| `number_sections` | no | `false` | Numbered headings (`1.`, `1.1`, etc.) |
 
 > The action installs all dependencies automatically. Make sure to check out the repository before invoking.
 
@@ -57,4 +71,5 @@ TITLE="My Document" MARKDOWN_FILE="docs/sample.md" OUTPUT_FILE="output/sample.do
 
 - Uses the official **SSC template** (`ssc-template-v2.7.dotx`) with cover page, headers, and classification.
 - Place `:::{#toc}:::` in your Markdown for a Word TOC field.
-- Mermaid diagrams (` ```mermaid `) are rendered as embedded images.
+- Mermaid diagrams (```` ```mermaid ````) are rendered as embedded images.
+- Classification is written to the document header and document properties — suitable for GC document handling.
