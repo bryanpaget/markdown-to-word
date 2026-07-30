@@ -55,7 +55,7 @@ jobs:
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
-        uses: bryanpaget/markdown-to-word@improved-workflow
+        uses: bryanpaget/markdown-to-word@main
         with:
           default_title: "[Untitled Document]"
           markdown_file: "${{ runner.temp }}/combined.md"
