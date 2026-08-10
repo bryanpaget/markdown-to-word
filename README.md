@@ -70,6 +70,6 @@ OUTPUT_FILE="output/incident-response.docx" \
 ## Notes
 
 - Uses the official **SSC template** (`ssc-template-v2.7.dotx`) with cover page, headers, and classification.
-- Place `:::{#toc}:::` in your Markdown for a Word TOC field.
+- Place `:::{#toc}:::` in your Markdown for a static table of contents with hyperlink entries.
 - Mermaid diagrams (```` ```mermaid ````) are rendered as embedded images.
 - Classification is written to the document header and document properties — suitable for GC document handling.
