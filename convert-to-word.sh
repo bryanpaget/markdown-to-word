@@ -99,7 +99,7 @@ if [[ "$USE_TEMPLATE_TITLE" != "true" && "$TITLE" != "$DEFAULT_TITLE" ]]; then
 fi
 
 echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERENCE_DOC'..."
-pandoc "$MARKDOWN_FILE" "$TITLE_FLAG" \
+pandoc "$MARKDOWN_FILE" ${TITLE_FLAG:+"$TITLE_FLAG"} \
     --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
     --lua-filter="$REPO_ROOT/filters/toc.lua" \
     --lua-filter="$REPO_ROOT/filters/mermaid.lua" \

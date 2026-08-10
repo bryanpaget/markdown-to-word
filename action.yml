@@ -65,6 +65,9 @@ runs:
 
     - name: Run Markdown to Word Conversion
       shell: bash
+      env:
+        INPUT_NUMBER_SECTIONS: ${{ inputs.number_sections }}
+        INPUT_USE_TEMPLATE_TITLE: ${{ inputs.use_template_title }}
       run: |
         bash "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
                                                             "${{ inputs.markdown_file }}" \
