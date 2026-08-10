@@ -3,6 +3,14 @@ description: "Converts Government of Canada Markdown to Word documents using the
 author: "Shared Services Canada (SSC)"
 
 inputs:
+  skip_combine:
+    description: 'Skip the automatic file combining (use markdown_file as-is)'
+    required: false
+    default: 'false'
+  use_template_title:
+    description: 'Whether to use the template cover title instead of overriding it'
+    required: false
+    default: 'true'
   number_sections:
     description: 'Add section numbers to headings (--number-sections)'
     required: false
@@ -58,8 +66,8 @@ runs:
     - name: Run Markdown to Word Conversion
       shell: bash
       run: |
-        "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
-                                                       "${{ inputs.markdown_file }}" \
-                                                       "${{ inputs.output_file }}" \
-                                                       "${{ inputs.reference_doc }}" \
-                                                       "${{ inputs.classification }}"
+        bash "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
+                                                            "${{ inputs.markdown_file }}" \
+                                                            "${{ inputs.output_file }}" \
+                                                            "${{ inputs.reference_doc }}" \
+                                                            "${{ inputs.classification }}"

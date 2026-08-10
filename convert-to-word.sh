@@ -90,9 +90,11 @@ fi
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
 # === CONVERT TO WORD ===
-# Only override the title if the caller explicitly provided one (not the default placeholder)
+# Only override the title if the caller explicitly provided one (not the default placeholder),
+# and the caller hasn't asked to keep the template cover title.
+USE_TEMPLATE_TITLE="${INPUT_USE_TEMPLATE_TITLE:-true}"
 TITLE_FLAG=""
-if [[ "$TITLE" != "$DEFAULT_TITLE" ]]; then
+if [[ "$USE_TEMPLATE_TITLE" != "true" && "$TITLE" != "$DEFAULT_TITLE" ]]; then
     TITLE_FLAG="--metadata=title=$TITLE"
 fi
 
