@@ -37,7 +37,9 @@ OUTPUT_FILE="output/incident-response.docx" \
 
 - `pandoc` (3.0+)
 - `python3` + `python-docx`
-- `@mermaid-js/mermaid-cli` (`mmdc`)
+- `@mermaid-js/mermaid-cli` (`mmdc`) — **only if** your Markdown contains Mermaid
+  code blocks. The conversion auto-detects `` ```mermaid `` blocks and applies
+  the Mermaid filter only when needed.
 
 ## How It Works
 
@@ -64,6 +66,7 @@ OUTPUT_FILE="output/incident-response.docx" \
 | `reference_doc` | no | `template/ssc-template-v2.7.dotx` | SSC Word template (`.dotx`) |
 | `classification` | no | `Unclassified \| Non classifi&eacute;` | Bilingual classification in header |
 | `number_sections` | no | `false` | Numbered headings (`1.`, `1.1`, etc.) |
+| `mermaid` | no | `auto` | `auto` (use filter only when mermaid blocks detected), `true`, or `false` |
 
 > The action installs all dependencies automatically. Make sure to check out the repository before invoking.
 

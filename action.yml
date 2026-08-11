@@ -33,6 +33,10 @@ inputs:
     description: "Bilingual classification text for the SSC document header (e.g., 'Protected A' or 'CONFIDENTIAL')."
     required: false
     default: "Unclassified | Non classifie"
+  mermaid:
+    description: "When 'auto', the mermaid Lua filter is used only if the markdown contains mermaid code blocks. Set 'true' to force it on, 'false' to force it off."
+    required: false
+    default: "auto"
 
 runs:
   using: "composite"
@@ -50,7 +54,18 @@ runs:
         sudo dpkg -i pandoc-3.10-1-amd64.deb
         pandoc --version
 
+    - name: Detect Mermaid code blocks
+      id: detect-mermaid
+      shell: bash
+      run: |
+        if grep -qE '^```[[:space:]]*mermaid' "${{ inputs.markdown_file }}" 2>/dev/null; then
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "needed=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Install Mermaid CLI
+      if: inputs.mermaid == 'true' || steps.detect-mermaid.outputs.needed == 'true'
       shell: bash
       run: |
         echo "Installing Mermaid CLI..."
@@ -68,6 +83,7 @@ runs:
       env:
         INPUT_NUMBER_SECTIONS: ${{ inputs.number_sections }}
         INPUT_USE_TEMPLATE_TITLE: ${{ inputs.use_template_title }}
+        INPUT_MERMAID: ${{ inputs.mermaid }}
       run: |
         bash "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
                                                             "${{ inputs.markdown_file }}" \

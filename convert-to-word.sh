@@ -19,6 +19,9 @@ OUTPUT_FILE="${3:-${OUTPUT_FILE:-$DEFAULT_OUTPUT_FILE}}"    # Third argument, en
 REFERENCE_DOC="${4:-${REFERENCE_DOC:-$DEFAULT_REFERENCE_DOC}}" # Fourth argument, env var, or default reference template
 CLASSIFICATION="${5:-${CLASSIFICATION:-$DEFAULT_CLASSIFICATION}}" # Fifth argument, env var, or default classification
 
+# Mermaid filter flag, resolved after path resolution below. Default empty.
+MERMAID_FLAG=""
+
 # Read number_sections from GitHub Actions input (environment)
 INPUT_NUMBER_SECTIONS="${INPUT_NUMBER_SECTIONS:-false}"
 NUMBER_SECTIONS_FLAG=""
@@ -58,11 +61,6 @@ if ! python3 -c 'import docx' >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v mmdc >/dev/null 2>&1; then
-    echo "❌ Error: 'mmdc' (Mermaid CLI) is not installed. Please install @mermaid-js/mermaid-cli and try again."
-    exit 1
-fi
-
 # === RESOLVE PATHS ===
 WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$PWD}"
 
@@ -74,6 +72,27 @@ if [[ "$OUTPUT_FILE" != /* ]]; then
 fi
 if [[ "$REFERENCE_DOC" != /* ]]; then
     REFERENCE_DOC="$REPO_ROOT/$REFERENCE_DOC"
+fi
+
+# Mermaid is optional: the filter is only applied when the source actually
+# contains mermaid code blocks (or MERMAID is forced to true). This avoids a
+# hard dependency on @mermaid-js/mermaid-cli for documents without diagrams.
+# Valid values: auto (detect), true (force on), false (force off).
+MERMAID="${MERMAID:-${INPUT_MERMAID:-auto}}"
+MERMAID_FLAG=""
+case "$MERMAID" in
+    true|1|yes) MERMAID_FLAG="--lua-filter=$REPO_ROOT/filters/mermaid.lua" ;;
+    false|0|no) MERMAID_FLAG="" ;;
+    auto)
+        if grep -qE '^```[[:space:]]*mermaid' "$MARKDOWN_FILE" 2>/dev/null; then
+            MERMAID_FLAG="--lua-filter=$REPO_ROOT/filters/mermaid.lua"
+        fi
+        ;;
+esac
+
+if [[ -n "$MERMAID_FLAG" ]] && ! command -v mmdc >/dev/null 2>&1; then
+    echo "❌ Error: 'mmdc' (Mermaid CLI) is not installed. Please install @mermaid-js/mermaid-cli and try again."
+    exit 1
 fi
 
 # === CHECK FILES ===
@@ -102,8 +121,9 @@ echo "🔄 Converting '$MARKDOWN_FILE' to '$OUTPUT_FILE' using template '$REFERE
 pandoc "$MARKDOWN_FILE" ${TITLE_FLAG:+"$TITLE_FLAG"} \
     --lua-filter="$REPO_ROOT/filters/pagebreak.lua" \
     --lua-filter="$REPO_ROOT/filters/toc.lua" \
-    --lua-filter="$REPO_ROOT/filters/mermaid.lua" \
+    ${MERMAID_FLAG:+"$MERMAID_FLAG"} \
     $NUMBER_SECTIONS_FLAG \
+    --resource-path="$(dirname "$MARKDOWN_FILE")" \
     -o "$OUTPUT_FILE" \
     --reference-doc="$REFERENCE_DOC"
 
