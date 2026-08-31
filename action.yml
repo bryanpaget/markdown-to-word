@@ -1,8 +1,20 @@
-name: "Markdown to Word Converter"
-description: "Converts a Markdown file to a Word document using Pandoc."
-author: "gccloudone"
+name: "Markdown to Word - SSC Template"
+description: "Converts Government of Canada Markdown to Word documents using the SSC template."
+author: "Shared Services Canada (SSC)"
 
 inputs:
+  skip_combine:
+    description: 'Skip the automatic file combining (use markdown_file as-is)'
+    required: false
+    default: 'false'
+  use_template_title:
+    description: 'Whether to use the template cover title instead of overriding it'
+    required: false
+    default: 'true'
+  number_sections:
+    description: 'Add section numbers to headings (--number-sections)'
+    required: false
+    default: 'false'
   default_title:
     description: "Default title for the Word document."
     required: true
@@ -18,9 +30,13 @@ inputs:
     required: false
     default: "template/ssc-template-v2.7.dotx"
   classification:
-    description: "Classification text for the document header (e.g., 'UNCLASSIFIED | Non classifie')."
+    description: "Bilingual classification text for the SSC document header (e.g., 'Protected A' or 'CONFIDENTIAL')."
     required: false
     default: "Unclassified | Non classifie"
+  mermaid:
+    description: "When 'auto', the mermaid Lua filter is used only if the markdown contains mermaid code blocks. Set 'true' to force it on, 'false' to force it off."
+    required: false
+    default: "auto"
 
 runs:
   using: "composite"
@@ -30,15 +46,26 @@ runs:
       with:
         node-version: '24'
 
-    - name: Install Pandoc
+    - name: Install Pandoc 3.10
       shell: bash
       run: |
-        echo "Installing Pandoc"
-        wget https://github.com/jgm/pandoc/releases/download/3.9.0.2/pandoc-3.9.0.2-1-amd64.deb
-        sudo dpkg -i pandoc-3.9.0.2-1-amd64.deb
+        echo "Installing Pandoc 3.10..."
+        wget https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-amd64.deb
+        sudo dpkg -i pandoc-3.10-1-amd64.deb
         pandoc --version
 
+    - name: Detect Mermaid code blocks
+      id: detect-mermaid
+      shell: bash
+      run: |
+        if grep -qE '^```[[:space:]]*mermaid' "${{ inputs.markdown_file }}" 2>/dev/null; then
+          echo "needed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "needed=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Install Mermaid CLI
+      if: inputs.mermaid == 'true' || steps.detect-mermaid.outputs.needed == 'true'
       shell: bash
       run: |
         echo "Installing Mermaid CLI..."
@@ -53,9 +80,13 @@ runs:
 
     - name: Run Markdown to Word Conversion
       shell: bash
+      env:
+        INPUT_NUMBER_SECTIONS: ${{ inputs.number_sections }}
+        INPUT_USE_TEMPLATE_TITLE: ${{ inputs.use_template_title }}
+        INPUT_MERMAID: ${{ inputs.mermaid }}
       run: |
-        "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
-                                                       "${{ inputs.markdown_file }}" \
-                                                       "${{ inputs.output_file }}" \
-                                                       "${{ github.action_path }}/${{ inputs.reference_doc }}" \
-                                                       "${{ inputs.classification }}"
+        bash "${{ github.action_path }}/convert-to-word.sh" "${{ inputs.default_title }}" \
+                                                            "${{ inputs.markdown_file }}" \
+                                                            "${{ inputs.output_file }}" \
+                                                            "${{ inputs.reference_doc }}" \
+                                                            "${{ inputs.classification }}"

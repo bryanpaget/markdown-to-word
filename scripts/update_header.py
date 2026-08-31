@@ -3,9 +3,11 @@ import os
 import zipfile
 import re
 import tempfile
+from xml.sax.saxutils import escape as xml_escape
+import html
 
 def update_header(docx_path, title_text, classification=None):
-    # Ensure the docx_path is an absolute path
+    # SSC document header injection — sets title and bilingual classification in DOCX headers
     docx_path = os.path.abspath(docx_path)
 
     # Check if the file exists
@@ -15,6 +17,10 @@ def update_header(docx_path, title_text, classification=None):
     # Default classification if not provided
     if classification is None:
         classification = "Unclassified | Non classifie"
+
+    # Escape XML special characters before injecting into the DOCX XML
+    title_text_xml = html.escape(title_text)
+    classification_xml = html.escape(classification)
 
     # We'll modify the docx file directly by working with the zip archive
     # This gives us access to all headers, not just the ones python-docx exposes
@@ -58,7 +64,7 @@ def update_header(docx_path, title_text, classification=None):
                 # Replace title in core.xml
                 content = re.sub(
                     r'<dc:title>([^<]*)</dc:title>',
-                    f'<dc:title>{title_text}</dc:title>',
+                    f'<dc:title>{xml_escape(title_text)}</dc:title>',
                     content
                 )
                 with open(core_xml_path, 'w', encoding='utf-8') as f:
@@ -76,7 +82,7 @@ def update_header(docx_path, title_text, classification=None):
                         # The template has: <w:t>[Enter </w:t>...<w:t>Document Title</w:t>...<w:t>]</w:t>
                         # Match the entire sequence and replace with a single element containing the title
                         split_pattern = r'\[Enter [\s\S]*?Document Title[\s\S]*?\]'
-                        split_replacement = f'<w:r><w:t>{title_text}</w:t></w:r>'
+                        split_replacement = f'<w:r><w:t>{xml_escape(title_text)}</w:t></w:r>'
                         content = re.sub(split_pattern, split_replacement, content, count=1)
                         
                         # Also handle the non-split placeholder
@@ -89,7 +95,7 @@ def update_header(docx_path, title_text, classification=None):
                             # Replace in <w:t> elements
                             content = re.sub(
                                 rf'(<w:t[^>]*>){escaped}(</w:t>)',
-                                rf'\1{title_text}\2',
+                                rf'\1{xml_escape(title_text)}\2',
                                 content
                             )
                         
@@ -101,7 +107,7 @@ def update_header(docx_path, title_text, classification=None):
                         # Replace the default classification text with the custom one
                         content = re.sub(
                             rf'(<w:t[^>]*>){escaped_default}(</w:t>)',
-                            rf'\1{classification}\2',
+                            rf'\1{xml_escape(classification)}\2',
                             content
                         )
                         

@@ -16,6 +16,7 @@ function Pandoc(doc)
 
     local toc
     if pandoc.structure and pandoc.structure.table_of_contents then
+      -- Static TOC with real hyperlink entries — renders in every viewer
       toc = pandoc.structure.table_of_contents(doc)
     else
       toc = pandoc.RawBlock('openxml',

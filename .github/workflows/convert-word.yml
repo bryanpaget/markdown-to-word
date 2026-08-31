@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+      - improved-workflow
   workflow_dispatch:
+    inputs:
+      skip_combine:
+        description: 'Skip the automatic file combining'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
 
 jobs:
   markdown-to-word:
@@ -14,7 +24,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Combine All Markdown Files
+      - name: Generate Release Tag
+        id: tag
+        run: echo "date=$(date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Combine All Markdown Files (if not skipped)
+        if: inputs.skip_combine != 'true'
         run: |
           cat <<EOF > "$RUNNER_TEMP/combined.md"
           ---
@@ -31,18 +46,22 @@ jobs:
 
           \newpage
           EOF
-          find docs -name "*.md" -not -name "combined.md" -exec sh -c 'cat "$@"; echo' _ {} + >> "$RUNNER_TEMP/combined.md"
+          find docs -name "*.md" -not -name "combined.md" -exec sh -c '
+            for f in "$@"; do
+              awk "NR==1 && /^---$/ { skip=1; next } skip && /^---$/ { skip=0; next } !skip" "$f"
+              echo
+            done
+          ' _ {} + >> "$RUNNER_TEMP/combined.md"
           sed -E -i 's|(\.\./)+attachments|attachments|g' "$RUNNER_TEMP/combined.md"
 
       - name: Convert Markdown to Word
-        uses: gccloudone/markdown-to-word@main
+        uses: bryanpaget/markdown-to-word@main
         with:
           default_title: "[Untitled Document]"
           markdown_file: "${{ runner.temp }}/combined.md"
           output_file: "output/markdown-to-word.docx"
           reference_doc: "template/ssc-template-v2.7.dotx"
-        env:
-          PDF_FILE: ""
+          number_sections: true
 
       - name: Upload Word Document
         uses: actions/upload-artifact@v7
@@ -50,3 +69,11 @@ jobs:
           name: markdown-to-word
           path: output/markdown-to-word.docx
           archive: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.tag.outputs.date }}"
+          name: "Release ${{ steps.tag.outputs.date }}"
+          files: output/markdown-to-word.docx
+          generate_release_notes: true
