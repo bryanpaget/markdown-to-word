@@ -328,17 +328,34 @@ def fix_titlepage_headings(doc_root: ET.Element) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Fix 6: flatten hyperlinks (+ append a link icon)
+# Fix 6: flatten EXTERNAL hyperlinks (+ append a link icon)
 # ---------------------------------------------------------------------------
-# LibreOffice draws a stray "X" glyph after every <w:hyperlink> field paragraph
+# LibreOffice draws a stray "X" glyph after every external <w:hyperlink> field
 # when the SSC template is used (confirmed LO 24 and 26). Unwrapping the
 # <w:hyperlink> wrapper - keeping its inner runs - removes the X. We keep the
 # Hyperlink character style on the inner runs (blue + underline) so it still
 # looks like a link, and append a small superscript arrow glyph as a visual
 # "external link" marker. This is a text-level transform on document.xml
 # because ET makes splicing a wrapper's children into its parent awkward.
-
-_HYPERLINK_RE = re.compile(r"<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>", re.S)
+#
+# IMPORTANT: only EXTERNAL links (w:hyperlink with an r:id, i.e. a real URL)
+# are flattened. Internal navigation links (w:hyperlink with w:anchor: the
+# table of contents and cross-references) are left untouched - flattening
+# those would strip navigation and scatter link arrows through the TOC. The
+# regex therefore:
+#   - requires r:id in the opening tag (external only),
+#   - refuses self-closing tags (<w:hyperlink .../>, e.g. an empty anchor),
+#   - is "tempered" so the inner capture never crosses another w:hyperlink
+#     boundary (no greedy over-match that eats a later </w:hyperlink>).
+_HYPERLINK_RE = re.compile(
+    r"<w:hyperlink\b"          # start of an opening hyperlink tag
+    r"(?=[^>]*\br:id=)"        # ... whose attributes include r:id (external)
+    r"(?![^>]*/>)"             # ... and which is NOT self-closing
+    r"[^>]*>"                  # end of the opening tag
+    r"((?:(?!</?w:hyperlink).)*?)"  # inner content, no nested hyperlink boundary
+    r"</w:hyperlink>",
+    re.S,
+)
 
 # A run bearing a small north-east arrow (U+2197) in a font with good symbol
 # coverage, rendered slightly raised so it reads as an icon rather than text.
