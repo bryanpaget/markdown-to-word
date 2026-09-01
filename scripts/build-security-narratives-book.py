@@ -264,7 +264,7 @@ def is_external(target):
 # We recognise these so evidence linked by its DevOps URL is still inlined into
 # the book (the file physically lives in the repo / SA folder).
 _DEVOPS_PATH_RE = re.compile(
-    r"https://dev\.azure\.com/SSC-Aurora/Aurora/_git/security-narratives\?[^)]*?path=/([^&)]+)")
+    r"https://dev\.azure\.com/SSC-Aurora/Aurora/_git/security-narratives\?[^\s]*?path=/([^&#\s]+)")
 
 
 def devops_repo_relpath(target):

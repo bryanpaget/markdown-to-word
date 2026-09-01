@@ -91,6 +91,24 @@ AURORA_GITHUB_ORGS = ("gccloudone", "gccloudone-aurora", "gccloudone-aurora-iac"
 # A link with a fragment-only target (#...) is an internal cross-reference.
 link_re = re.compile(r"!?\[[^\]]*\]\(([^)]+(?:\([^)]*\)[^)]*)*)\)")
 
+# Azure DevOps web URL for a file in THIS repo, e.g.
+#   https://dev.azure.com/SSC-Aurora/Aurora/_git/security-narratives?path=/azure/evidence/AC-3/x.yaml&version=GBmain
+# Such evidence is inlined into the book by the assembler, so it is physically
+# in the SA folder already and must NOT be reported as manual-export.
+_DEVOPS_REPO_PATH_RE = re.compile(
+    r"https://dev\.azure\.com/SSC-Aurora/Aurora/_git/security-narratives\?[^\s]*?path=/([^&#\s]+)")
+
+
+def _devops_repo_file_exists(target):
+    """True if target is a DevOps ?path= URL into this repo AND the file exists."""
+    m = _DEVOPS_REPO_PATH_RE.search(target)
+    if not m:
+        return False
+    rel = urllib.parse.unquote(m.group(1)).lstrip("/")
+    rel = re.sub(r"/{2,}", "/", rel)
+    abs_path = os.path.normpath(os.path.join(REPO_ROOT, rel))
+    return abs_path.startswith(os.path.normpath(REPO_ROOT)) and os.path.exists(abs_path)
+
 
 def classify(target):
     """Return one of: local, evidence-web, evidence-auth, reference, internal."""
@@ -98,6 +116,10 @@ def classify(target):
     if t.startswith("#") or t.startswith("mailto:"):
         return "internal"
     if not t.startswith(("http://", "https://")):
+        return "local"
+    # A DevOps link to a file that lives in this repo is inlined into the book,
+    # so treat it as local (already in the SA folder), not manual-export.
+    if _devops_repo_file_exists(t):
         return "local"
     host = urllib.parse.urlparse(t).netloc.lower()
     if host in EVIDENCE_WEB_HOSTS:
