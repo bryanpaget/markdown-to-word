@@ -127,23 +127,70 @@ def slugify_url(url):
     return (stem or "index")[:120]
 
 
+def _iter_markdown_sources():
+    """Yield (md_path, source_id) for every narrative and appendix markdown file.
+
+    Sources scanned:
+      - azure/*.md                         -> source_id = control id (file stem)
+      - azure/evidence/<CONTROL-ID>/**.md  -> source_id = <CONTROL-ID> (the
+                                              parent folder under evidence/, so
+                                              evidence-doc links group under the
+                                              control they support)
+      - azure/incidents/**.md              -> source_id = incident file stem
+
+    Grouping evidence docs under their control id keeps captured PDFs and the
+    manifest organised the way an assessor reads the SA folder.
+    """
+    # 1. Top-level control narratives.
+    for name in sorted(os.listdir(AZURE_DIR)):
+        if name.endswith(".md") and os.path.isfile(os.path.join(AZURE_DIR, name)):
+            yield os.path.join(AZURE_DIR, name), control_id_from_filename(name)
+
+    # 2. Evidence appendix docs: azure/evidence/<CONTROL-ID>/**/*.md
+    evidence_dir = os.path.join(AZURE_DIR, "evidence")
+    if os.path.isdir(evidence_dir):
+        for root, _dirs, files in os.walk(evidence_dir):
+            for fn in sorted(files):
+                if not fn.endswith(".md"):
+                    continue
+                rel = os.path.relpath(os.path.join(root, fn), evidence_dir)
+                # First path segment under evidence/ is the control id.
+                sid = rel.split(os.sep)[0] if os.sep in rel else control_id_from_filename(fn)
+                yield os.path.join(root, fn), sid
+
+    # 3. Incident reports: azure/incidents/**/*.md
+    incidents_dir = os.path.join(AZURE_DIR, "incidents")
+    if os.path.isdir(incidents_dir):
+        for root, _dirs, files in os.walk(incidents_dir):
+            for fn in sorted(files):
+                if fn.endswith(".md"):
+                    yield os.path.join(root, fn), control_id_from_filename(fn)
+
+
 def collect_links():
-    """Scan azure/*.md.
+    """Scan control narratives AND appendix docs (evidence + incidents).
 
     Returns (links, citations) where:
-      links     = {control_id: [(label, target, kind), ...]}
-      citations = {target_url: [control_id, ...]}  (which controls cite each URL)
+      links     = {source_id: [(label, target, kind), ...]}
+      citations = {target_url: [source_id, ...]}  (which sources cite each URL)
+
+    source_id is a control id (e.g. "AC-2", "CP-10") for narratives and
+    evidence docs, or an incident stem (e.g. "AUR-INC-001 - ...") for incidents.
     """
     out = {}
     citations = {}
-    for name in sorted(os.listdir(AZURE_DIR)):
-        if not name.endswith(".md"):
+    for md_path, sid in _iter_markdown_sources():
+        try:
+            with open(md_path, encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError:
             continue
-        cid = control_id_from_filename(name)
-        with open(os.path.join(AZURE_DIR, name), encoding="utf-8") as fh:
-            text = fh.read()
         seen = set()
-        items = []
+        items = out.setdefault(sid, [])
+        # Track (label, target) already recorded for this source id so the same
+        # link appearing in several files under one control is not duplicated.
+        for _l, _t, _k in items:
+            seen.add((_l, _t))
         for m in link_re.finditer(text):
             label_m = re.match(r"!?\[([^\]]*)\]", m.group(0))
             label = label_m.group(1) if label_m else ""
@@ -156,9 +203,8 @@ def collect_links():
             items.append((label, target, kind))
             if kind in ("evidence-web", "evidence-auth"):
                 citations.setdefault(target, [])
-                if cid not in citations[target]:
-                    citations[target].append(cid)
-        out[cid] = items
+                if sid not in citations[target]:
+                    citations[target].append(sid)
     return out, citations
 
 
