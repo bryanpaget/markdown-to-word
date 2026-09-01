@@ -27,9 +27,20 @@ Four fixes are applied:
 5. TITLE PAGE HEADING INDENT — Heading1 paragraphs on the title page are given a
    right indent so they don't overlap the decorative leaf graphic in the header.
 
+6. HYPERLINKS — LibreOffice's DOCX->PDF export renders a stray glyph (shown as a
+   literal "X") at the end of every paragraph that contains a <w:hyperlink>
+   field, when the SSC template is used. Reproduced on LibreOffice 24 and 26; it
+   is not in the source, pandoc output, or the DOCX text. This unwraps each
+   <w:hyperlink> field (which removes the stray X) while keeping the link text's
+   blue+underline Hyperlink styling, and appends a small "external link" arrow
+   glyph so the reference still reads as a link. Trade-off: the link is no longer
+   a clickable annotation in the PDF (the URL text/target is preserved in the
+   narrative source and, where written inline, in the visible text).
+
 Usage:
     python3 fix-docx-tables.py <file.docx> [<file2.docx> ...]
 """
+import re
 import sys
 import zipfile
 import os
@@ -316,9 +327,48 @@ def fix_titlepage_headings(doc_root: ET.Element) -> int:
     return fixed
 
 
+# ---------------------------------------------------------------------------
+# Fix 6: flatten hyperlinks (+ append a link icon)
+# ---------------------------------------------------------------------------
+# LibreOffice draws a stray "X" glyph after every <w:hyperlink> field paragraph
+# when the SSC template is used (confirmed LO 24 and 26). Unwrapping the
+# <w:hyperlink> wrapper - keeping its inner runs - removes the X. We keep the
+# Hyperlink character style on the inner runs (blue + underline) so it still
+# looks like a link, and append a small superscript arrow glyph as a visual
+# "external link" marker. This is a text-level transform on document.xml
+# because ET makes splicing a wrapper's children into its parent awkward.
+
+_HYPERLINK_RE = re.compile(r"<w:hyperlink\b[^>]*>(.*?)</w:hyperlink>", re.S)
+
+# A run bearing a small north-east arrow (U+2197) in a font with good symbol
+# coverage, rendered slightly raised so it reads as an icon rather than text.
+_LINK_ICON_RUN = (
+    '<w:r><w:rPr>'
+    '<w:rFonts w:ascii="DejaVu Sans" w:hAnsi="DejaVu Sans" w:cs="DejaVu Sans"/>'
+    '<w:position w:val="4"/><w:sz w:val="16"/><w:szCs w:val="16"/>'
+    '<w:color w:val="0070C0"/>'
+    '</w:rPr><w:t xml:space="preserve">\u2009\u2197</w:t></w:r>'
+)
+
+
+def flatten_hyperlinks(doc_xml: str) -> tuple:
+    """Unwrap <w:hyperlink> fields and append a link icon. Returns (xml, count)."""
+    count = 0
+
+    def _repl(m):
+        nonlocal count
+        count += 1
+        inner = m.group(1)
+        return inner + _LINK_ICON_RUN
+
+    new_xml = _HYPERLINK_RE.sub(_repl, doc_xml)
+    return new_xml, count
+
+
 def fix_doc(path: str) -> dict:
     tmp = path + ".tmp"
-    counts = {"tables": 0, "classif_boxes": 0, "styles": False, "injected": []}
+    counts = {"tables": 0, "classif_boxes": 0, "styles": False, "injected": [],
+              "hyperlinks": 0}
 
     with zipfile.ZipFile(path) as zin:
         with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
@@ -335,6 +385,17 @@ def fix_doc(path: str) -> dict:
                 elif name.startswith("word/header") and name.endswith(".xml"):
                     root = ET.fromstring(data)
                     counts["classif_boxes"] += fix_classification_textboxes(root)
+                    data = ET.tostring(root, xml_declaration=True, encoding="UTF-8")
+
+                elif name == "word/document.xml":
+                    # Text-level hyperlink flatten first (removes the LibreOffice
+                    # stray-X and appends a link icon), then the ET-based table fix.
+                    text = data.decode("utf-8")
+                    text, counts["hyperlinks"] = flatten_hyperlinks(text)
+                    root = ET.fromstring(text)
+                    for tbl in root.iter(W + "tbl"):
+                        fix_table(tbl)
+                        counts["tables"] += 1
                     data = ET.tostring(root, xml_declaration=True, encoding="UTF-8")
 
                 elif (
@@ -364,10 +425,11 @@ def main() -> None:
     for path in sys.argv[1:]:
         c = fix_doc(path)
         injected_str = (f", injected styles: {c['injected']}") if c["injected"] else ""
+        hl_str = (f", {c['hyperlinks']} hyperlink(s) flattened") if c.get("hyperlinks") else ""
         print(
             f"{path}: {c['tables']} table(s), "
             f"{c['classif_boxes']} classification box(es) widened"
-            f"{injected_str}"
+            f"{injected_str}{hl_str}"
         )
 
 
