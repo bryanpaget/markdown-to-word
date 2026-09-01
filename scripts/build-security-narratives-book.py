@@ -259,6 +259,30 @@ def is_external(target):
     return target.startswith(("http://", "https://", "mailto:", "data:", "#")) or target.startswith("../")
 
 
+# Azure DevOps web URL for a file in THIS repo, e.g.
+#   https://dev.azure.com/SSC-Aurora/Aurora/_git/security-narratives?path=/azure/evidence/AC-3/x.yaml&version=GBmain
+# We recognise these so evidence linked by its DevOps URL is still inlined into
+# the book (the file physically lives in the repo / SA folder).
+_DEVOPS_PATH_RE = re.compile(
+    r"https://dev\.azure\.com/SSC-Aurora/Aurora/_git/security-narratives\?[^)]*?path=/([^&)]+)")
+
+
+def devops_repo_relpath(target):
+    """If target is a DevOps web URL pointing at a file in this repo, return the
+    repo-root-relative path to that file (if it exists), else None."""
+    m = _DEVOPS_PATH_RE.search(target)
+    if not m:
+        return None
+    rel = urllib.parse.unquote(m.group(1)).lstrip("/")
+    rel = re.sub(r"/{2,}", "/", rel)
+    abs_path = os.path.normpath(os.path.join(REPO_ROOT, rel))
+    if not abs_path.startswith(os.path.normpath(REPO_ROOT)):
+        return None
+    if not os.path.exists(abs_path):
+        return None
+    return os.path.relpath(abs_path, REPO_ROOT)
+
+
 def resolve_local(base_dir, target):
     """Resolve a local relative target against base_dir. Returns (rel_root_path, abs_path) or None."""
     t = urllib.parse.unquote(target).strip()
@@ -326,8 +350,15 @@ def transform(text, base_dir, rel_source, inject=True):
             anchor = rewrite_incident_url(target)
             if anchor:
                 out.append("[%s](%s)" % (link.label, anchor))
-            else:
-                out.append("[%s](%s)" % (link.label, target))
+                continue
+            # Keep the (clickable) link, but if it is a DevOps URL pointing at an
+            # inject-able evidence file in this repo, also inline the file content
+            # so the evidence is physically present in the book.
+            out.append("[%s](%s)" % (link.label, target))
+            if inject and not link.img:
+                dev_rel = devops_repo_relpath(target)
+                if dev_rel and os.path.splitext(dev_rel)[1].lower() in INJECT_EXTS:
+                    injections.append((link.label, dev_rel))
             continue
         resolved = resolve_local(base_dir, target)
         if resolved is None:
